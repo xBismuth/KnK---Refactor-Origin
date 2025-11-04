@@ -1,0 +1,1577 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sign In - Kusina ni Katya</title>
+
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          accent: '#cda45e',
+          'accent-light': '#e5b66a',
+          'accent-dark': '#b8924e',
+          dark: '#1a1a1a',
+          'dark-light': '#2d2d2d',
+          'light-bg': '#fef9f3',
+          cream: '#f5e9da',
+        },
+        fontFamily: {
+          poppins: ['Poppins', 'sans-serif'],
+        },
+        animation: {
+          'fade-in': 'fadeIn 0.6s ease-out forwards',
+          'slide-up': 'slideUp 0.5s ease-out forwards',
+          'scale-in': 'scaleIn 0.4s ease-out forwards',
+          'slide-in-left': 'slideInLeft 0.5s ease-out forwards',
+          'slide-in-right': 'slideInRight 0.5s ease-out forwards',
+          spin: 'spin 1s linear infinite',
+        },
+        keyframes: {
+          fadeIn: {
+            '0%': { opacity: '0' },
+            '100%': { opacity: '1' },
+          },
+          slideUp: {
+            '0%': { transform: 'translateY(30px)', opacity: '0' },
+            '100%': { transform: 'translateY(0)', opacity: '1' },
+          },
+          scaleIn: {
+            '0%': { transform: 'scale(0.9)', opacity: '0' },
+            '100%': { transform: 'scale(1)', opacity: '1' },
+          },
+          slideInLeft: {
+            '0%': { transform: 'translateX(-100%)', opacity: '0' },
+            '100%': { transform: 'translateX(0)', opacity: '1' },
+          },
+          slideInRight: {
+            '0%': { transform: 'translateX(100%)', opacity: '0' },
+            '100%': { transform: 'translateX(0)', opacity: '1' },
+          },
+        },
+      },
+    },
+  };
+</script>
+
+
+<style>
+body {
+  font-family: 'Poppins', sans-serif;
+}
+
+.pattern-bg {
+  background-color: #fef9f3;
+  background-image: 
+    radial-gradient(circle at 25% 25%, rgba(205, 164, 94, 0.05) 0%, transparent 50%),
+    radial-gradient(circle at 75% 75%, rgba(205, 164, 94, 0.05) 0%, transparent 50%);
+}
+
+.input-field {
+  transition: all 0.3s ease;
+}
+
+.input-field:focus {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(205, 164, 94, 0.2);
+}
+
+.password-toggle {
+  cursor: pointer;
+  transition: color 0.3s ease;
+}
+
+.password-toggle:hover {
+  color: #cda45e;
+}
+
+.totp-input {
+  font-size: 1.5rem;
+  letter-spacing: 0.5rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+.g_id_signin {
+  display: flex;
+  justify-content: center;
+}
+
+.spinner {
+  border: 3px solid #f3f3f3;
+  border-top: 3px solid #cda45e;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+  
+}
+
+@keyframes slideInLeft {
+  0% {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  100% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideInRight {
+  0% {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  100% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+
+</style>
+</head>
+
+<body class="bg-light-bg pattern-bg min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+
+<div class="w-full max-w-6xl">
+  <!-- Back to Home Link -->
+  <div class="mb-8 animate-fade-in">
+    <a href="index.html" class="inline-flex items-center text-dark hover:text-accent transition-colors duration-300 group">
+      <svg class="w-5 h-5 mr-2 group-hover:-translate-x-1 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+      </svg>
+      <span class="font-medium">Back to Home</span>
+    </a>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+    <!-- Left Side - Branding & Image -->
+    <div class="hidden lg:flex flex-col justify-center items-center bg-gradient-to-br from-accent-dark to-accent rounded-3xl p-12 shadow-2xl animate-slide-in-left">
+      <div class="text-center text-white">
+        <div class="w-24 h-24 bg-white rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg overflow-hidden">
+          <img src="assets/images/logo1.png" alt="Kusina ni Katya Logo" class="w-20 h-20 object-contain" onerror="this.style.display='none';">
+        </div>
+        <h1 class="text-4xl font-bold mb-4">Kusina ni Katya</h1>
+        <p class="text-xl mb-6 text-white/90">Authentic Filipino Cuisine</p>
+        <div class="w-32 h-1 bg-white/50 mx-auto rounded-full mb-8"></div>
+        <p class="text-lg text-white/80 max-w-md">Welcome back! Sign in to enjoy exclusive deals, faster checkout, and order tracking!</p>
+        
+        <!-- Decorative Food Icons -->
+        <div class="mt-12 flex justify-center gap-8 text-6xl">
+          <span class="animate-bounce" style="animation-delay: 0s;">🍲</span>
+          <span class="animate-bounce" style="animation-delay: 0.2s;">🍚</span>
+          <span class="animate-bounce" style="animation-delay: 0.4s;">🥘</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Side - Sign In Form -->
+    <div class="bg-white rounded-3xl shadow-2xl p-8 sm:p-12 animate-slide-in-right">
+      <!-- Logo for Mobile -->
+      <div class="lg:hidden text-center mb-8">
+        <div class="w-20 h-20 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg overflow-hidden border-2 border-accent">
+          <img src="assets/images/logo1.png" alt="Kusina ni Katya Logo" class="w-16 h-16 object-contain" onerror="this.style.display='none';">
+        </div>
+        <h2 class="text-2xl font-bold text-dark">Kusina ni Katya</h2>
+        <p class="text-gray-600 text-sm">Authentic Filipino Cuisine</p>
+      </div>
+
+      <!-- Sign In Form -->
+      <div>
+        <h2 class="text-3xl font-bold text-dark mb-2" id="form-title">Welcome Back!</h2>
+        <p class="text-gray-600 mb-8" id="form-subtitle">Sign in to continue your culinary journey</p>
+
+        <!-- Error Alert -->
+        <div id="error-alert" class="hidden mb-6 p-4 bg-red-50 border-l-4 border-red-500 rounded-lg">
+          <div class="flex items-center">
+            <svg class="w-5 h-5 text-red-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            <p id="error-message" class="text-sm text-red-700"></p>
+          </div>
+        </div>
+
+        <!-- Credentials Form -->
+        <form id="credentials-form" class="transition-all duration-300">
+
+          <!-- Email -->
+          <div class="mb-6">
+            <label class="block text-dark font-semibold mb-2" for="signin-email">Email Address</label>
+            <input type="email" name="email" id="signin-email" required 
+              class="input-field w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-accent focus:outline-none" 
+              placeholder="Email">
+          </div>
+
+          <!-- Password -->
+          <div class="mb-6">
+            <label class="block text-dark font-semibold mb-2" for="signin-password">Password</label>
+            <div class="relative">
+              <input type="password" name="password" id="signin-password" required 
+                class="input-field w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-accent focus:outline-none pr-12" 
+                placeholder="Password">
+              <button type="button" onclick="togglePassword('signin-password', this)" class="password-toggle absolute right-4 top-1/2 -translate-y-1/2 text-gray-400">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- Remember Me & Forgot Password -->
+          <div class="flex items-center justify-between mb-6">
+            <label class="flex items-center cursor-pointer">
+              <input type="checkbox" class="w-4 h-4 text-accent border-gray-300 rounded focus:ring-accent">
+              <span class="ml-2 text-sm text-gray-600">Remember me</span>
+            </label>
+            <a href="#" onclick="openForgotPasswordModal(); return false;" class="text-sm text-accent hover:text-accent-dark font-semibold transition-colors duration-300">
+              Forgot Password?
+            </a>
+          </div>
+
+          <!-- Submit Button -->
+          <button type="button" id="signin-btn" onclick="proceedToVerification()" 
+            class="w-full py-4 bg-gradient-to-r from-accent to-accent-dark text-white font-bold text-lg rounded-full hover:shadow-xl hover:scale-105 transition-all duration-300 mb-6 flex items-center justify-center">
+            <span id="signin-btn-text">Sign In</span>
+            <div id="signin-spinner" class="spinner ml-3 hidden"></div>
+          </button>
+        </form>
+
+        <!-- Email Verification Form -->
+        <form id="verification-form" class="hidden transition-all duration-300">
+          <div class="mb-6 text-center">
+            <div class="w-16 h-16 bg-accent/20 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg class="w-8 h-8 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+              </svg>
+            </div>
+            <h3 class="text-xl font-bold text-dark">Verify Your Email</h3>
+            <p class="text-gray-600 text-sm mt-2">We sent a 6-digit code to <span id="verification-email" class="font-semibold text-accent"></span></p>
+            <p class="text-xs text-gray-500 mt-2">Check your email inbox and spam folder</p>
+          </div>
+
+          <div class="mb-6">
+            <label class="block text-dark font-semibold mb-3 text-center">Verification Code</label>
+            <input 
+              type="text" 
+              id="verification-code" 
+              maxlength="6"
+              pattern="[0-9]{6}"
+              inputmode="numeric"
+              class="totp-input input-field w-full px-4 py-4 border-2 border-gray-200 rounded-lg focus:border-accent focus:outline-none"
+              placeholder="000000"
+            >
+            <p class="text-xs text-gray-500 text-center mt-2">Code expires in <span id="code-timer">10:00</span></p>
+          </div>
+
+          <div id="verification-error" class="hidden mb-4 p-3 bg-red-100 border-l-4 border-red-500 text-red-700 text-sm rounded">
+            Invalid verification code. Please try again.
+          </div>
+
+          <button type="button" onclick="verifyLoginCode()" 
+            class="w-full py-4 bg-gradient-to-r from-accent to-accent-dark text-white font-bold text-lg rounded-full hover:shadow-xl hover:scale-105 transition-all duration-300 mb-4">
+            Verify & Sign In
+          </button>
+
+          <div class="flex gap-3">
+            <button type="button" onclick="resendLoginCode()" 
+              class="flex-1 py-3 bg-gray-100 text-dark font-semibold rounded-full hover:bg-gray-200 transition-all duration-300">
+              Resend Code
+            </button>
+            <button type="button" onclick="backToCredentials()" 
+              class="flex-1 py-3 bg-gray-100 text-dark font-semibold rounded-full hover:bg-gray-200 transition-all duration-300">
+              Back
+            </button>
+          </div>
+        </form>
+
+        <!-- Divider -->
+        <div id="divider" class="relative mb-6">
+          <div class="absolute inset-0 flex items-center">
+            <div class="w-full border-t-2 border-accent/20"></div>
+          </div>
+          <div class="relative flex justify-center text-sm">
+            <span class="px-4 bg-white text-gray-600 font-medium">Or continue with</span>
+          </div>
+        </div>
+
+        <!-- Google Login -->
+        <div id="social-login" class="mb-8">
+          <div id="g_id_onload" data-client_id="185778585245-6o939pgomkeqnse9rsa3th61b2biacsu.apps.googleusercontent.com" data-callback="handleCredentialResponse"></div>
+          <div class="g_id_signin" data-type="standard" data-size="large" data-theme="outline" data-text="signin_with" data-shape="rectangular" data-logo_alignment="left"></div>
+        </div>
+
+        <!-- Sign Up Link -->
+        <div class="text-center">
+          <p class="text-gray-600">
+            Don't have an account? 
+            <a href="signup.html" class="text-accent hover:text-accent-dark font-bold transition-colors duration-300">Sign Up</a>
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Success Modal -->
+<div id="success-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 backdrop-blur-sm">
+  <div class="bg-white rounded-3xl p-8 max-w-md mx-4 shadow-2xl animate-scale-in text-center">
+    <div class="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+      <svg class="w-10 h-10 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+      </svg>
+    </div>
+    <h3 class="text-2xl font-bold text-dark mb-2" id="modal-title">Success!</h3>
+    <p class="text-gray-600 mb-6" id="modal-message">You have successfully signed in.</p>
+    <button onclick="closeModal()" class="w-full px-6 py-3 bg-gradient-to-r from-accent to-accent-dark text-white font-semibold rounded-full hover:shadow-lg transition-all duration-300">
+      Continue
+    </button>
+  </div>
+</div>
+
+<!-- Forgot Password Modal -->
+<div id="forgot-password-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 backdrop-blur-sm" onclick="closeForgotPasswordModal(event)">
+  <div class="bg-white rounded-3xl p-8 max-w-md mx-4 shadow-2xl animate-scale-in" onclick="event.stopPropagation()">
+    <!-- Step 1: Request Reset -->
+    <div id="forgot-password-step1">
+      <div class="text-center mb-6">
+        <div class="w-16 h-16 bg-accent/20 rounded-full flex items-center justify-center mx-auto mb-4">
+          <svg class="w-8 h-8 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"></path>
+          </svg>
+        </div>
+        <h3 class="text-2xl font-bold text-dark mb-2">Reset Password</h3>
+        <p class="text-gray-600 text-sm">Enter your email address and we'll send you a code to reset your password.</p>
+      </div>
+
+      <div id="forgot-password-error" class="hidden mb-4 p-3 bg-red-100 border-l-4 border-red-500 text-red-700 text-sm rounded">
+        Error message here
+      </div>
+
+      <div class="mb-6">
+        <label class="block text-dark font-semibold mb-2" for="forgot-email">Email Address</label>
+        <input 
+          type="email" 
+          id="forgot-email" 
+          class="input-field w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-accent focus:outline-none" 
+          placeholder="Enter your email">
+      </div>
+
+      <div class="flex gap-3">
+        <button onclick="closeForgotPasswordModal()" class="flex-1 py-3 bg-gray-100 text-dark font-semibold rounded-full hover:bg-gray-200 transition-all duration-300">
+          Cancel
+        </button>
+        <button onclick="requestPasswordReset()" id="forgot-password-btn" class="flex-1 py-3 bg-gradient-to-r from-accent to-accent-dark text-white font-semibold rounded-full hover:shadow-lg transition-all duration-300">
+          Send Reset Code
+        </button>
+      </div>
+    </div>
+
+    <!-- Step 2: Verify Code & Set New Password -->
+    <div id="forgot-password-step2" class="hidden">
+      <div class="text-center mb-6">
+        <div class="w-16 h-16 bg-accent/20 rounded-full flex items-center justify-center mx-auto mb-4">
+          <svg class="w-8 h-8 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+          </svg>
+        </div>
+        <h3 class="text-2xl font-bold text-dark mb-2">Enter Verification Code</h3>
+        <p class="text-gray-600 text-sm">We sent a 6-digit code to <span id="forgot-reset-email" class="font-semibold text-accent"></span></p>
+      </div>
+
+      <div id="forgot-password-verify-error" class="hidden mb-4 p-3 bg-red-100 border-l-4 border-red-500 text-red-700 text-sm rounded">
+        Error message here
+      </div>
+
+      <div class="mb-4">
+        <label class="block text-dark font-semibold mb-2 text-center">Verification Code</label>
+        <input 
+          type="text" 
+          id="forgot-reset-code" 
+          maxlength="6"
+          pattern="[0-9]{6}"
+          inputmode="numeric"
+          class="totp-input input-field w-full px-4 py-4 border-2 border-gray-200 rounded-lg focus:border-accent focus:outline-none text-center"
+          placeholder="000000">
+      </div>
+
+      <div class="mb-4">
+        <label class="block text-dark font-semibold mb-2" for="forgot-new-password">New Password</label>
+        <div class="relative">
+          <input 
+            type="password" 
+            id="forgot-new-password" 
+            class="input-field w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-accent focus:outline-none pr-12" 
+            placeholder="Enter new password">
+          <button type="button" onclick="togglePassword('forgot-new-password', this)" class="password-toggle absolute right-4 top-1/2 -translate-y-1/2 text-gray-400">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="mb-6">
+        <label class="block text-dark font-semibold mb-2" for="forgot-confirm-password">Confirm New Password</label>
+        <div class="relative">
+          <input 
+            type="password" 
+            id="forgot-confirm-password" 
+            class="input-field w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-accent focus:outline-none pr-12" 
+            placeholder="Confirm new password">
+          <button type="button" onclick="togglePassword('forgot-confirm-password', this)" class="password-toggle absolute right-4 top-1/2 -translate-y-1/2 text-gray-400">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="flex gap-3">
+        <button onclick="backToForgotPasswordStep1()" class="flex-1 py-3 bg-gray-100 text-dark font-semibold rounded-full hover:bg-gray-200 transition-all duration-300">
+          Back
+        </button>
+        <button onclick="resetPassword()" id="forgot-reset-btn" class="flex-1 py-3 bg-gradient-to-r from-accent to-accent-dark text-white font-semibold rounded-full hover:shadow-lg transition-all duration-300">
+          Reset Password
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/*
+  Rewritten JS for login.html
+  - Keeps UI/markup intact
+  - Fixes verify/send/resend logic, timers, error handling
+  - Keeps Google OAuth working
+  - Removes development-code logging
+*/
+
+/* ---------- Globals (match names used in your HTML) ---------- */
+let userEmail = '';
+let userPassword = '';
+let codeExpiryTimer = null;
+let isSubmitting = false;
+let isVerifying = false;
+
+/* ---------- Small helpers for UI elements that exist in your file ---------- */
+function showErrorAlert(message) {
+  // The original UI used an error alert block with id="error-alert"
+  const el = document.getElementById('error-alert');
+  if (el) {
+    const msgEl = document.getElementById('error-message');
+    if (msgEl) msgEl.textContent = message;
+    el.classList.remove('hidden');
+    // auto-hide after 5s
+    setTimeout(() => el.classList.add('hidden'), 5000);
+  } else {
+    alert(message);
+  }
+}
+
+function hideErrorAlert() {
+  const el = document.getElementById('error-alert');
+  if (el) el.classList.add('hidden');
+}
+
+/* Verification-specific error box (id="verification-error") */
+function showError(message) {
+  const el = document.getElementById('verification-error');
+  if (el) {
+    el.textContent = message;
+    el.classList.remove('hidden');
+    setTimeout(() => el.classList.add('hidden'), 5000);
+  } else {
+    console.warn('verification-error element not found:', message);
+  }
+}
+
+function hideError() {
+  const el = document.getElementById('verification-error');
+  if (el) el.classList.add('hidden');
+}
+
+/* Success modal helpers (ids: success-modal, modal-title, modal-message) */
+function showSuccessModal(title, message) {
+  const modal = document.getElementById('success-modal');
+  if (!modal) {
+    alert(`${title}\n\n${message}`);
+    return;
+  }
+  const titleEl = document.getElementById('modal-title');
+  const msgEl = document.getElementById('modal-message');
+  if (titleEl) titleEl.textContent = title;
+  if (msgEl) msgEl.textContent = message;
+  modal.classList.remove('hidden');
+  modal.classList.add('flex');
+}
+
+function closeModal() {
+  const modal = document.getElementById('success-modal');
+  if (!modal) return;
+  modal.classList.add('hidden');
+  modal.classList.remove('flex');
+}
+
+/* ---------- Timer for verification code (10 minutes) ---------- */
+function startCodeTimer() {
+  clearInterval(codeExpiryTimer);
+  let timeLeft = 10 * 60; // 600 seconds
+
+  const timerEl = document.getElementById('code-timer');
+  if (timerEl) timerEl.textContent = '10:00';
+
+  codeExpiryTimer = setInterval(() => {
+    timeLeft--;
+    const mins = Math.floor(timeLeft / 60);
+    const secs = timeLeft % 60;
+    if (timerEl) timerEl.textContent = `${mins}:${secs.toString().padStart(2, '0')}`;
+
+    // visual hints (if classes exist)
+    if (timeLeft <= 60 && timerEl) {
+      timerEl.classList.add('text-red-600');
+      timerEl.classList.remove('text-gray-500');
+    } else if (timeLeft <= 180 && timerEl) {
+      timerEl.classList.add('text-orange-600');
+      timerEl.classList.remove('text-gray-500');
+    }
+
+    if (timeLeft <= 0) {
+      clearInterval(codeExpiryTimer);
+      showError('Verification code expired. Please request a new one.');
+      // disable verify button (if present)
+      const verifyBtn = document.querySelector('button[onclick="verifyLoginCode()"]');
+      if (verifyBtn) {
+        verifyBtn.disabled = true;
+        verifyBtn.classList.add('opacity-50', 'cursor-not-allowed');
+      }
+    }
+  }, 1000);
+}
+
+/* ---------- proceedToVerification: send-login-code ---------- */
+function proceedToVerification() {
+  if (isSubmitting) {
+    console.log('Already submitting login request...');
+    return;
+  }
+
+  const emailInput = document.getElementById('signin-email');
+  const passInput = document.getElementById('signin-password');
+
+  if (!emailInput || !passInput) {
+    showErrorAlert('Login form elements missing in DOM.');
+    return;
+  }
+
+  const email = emailInput.value.trim();
+  const password = passInput.value;
+
+  if (!email || !password) {
+    showErrorAlert('Please enter both email and password');
+    return;
+  }
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    showErrorAlert('Please enter a valid email address');
+    return;
+  }
+
+  if (password.length < 6) {
+    showErrorAlert('Password must be at least 6 characters');
+    return;
+  }
+
+  userEmail = email;
+  userPassword = password;
+  isSubmitting = true;
+  hideErrorAlert();
+
+  // Disable the sign-in button to prevent duplicates
+  const signinBtn = document.getElementById('signin-btn') || document.querySelector('button[onclick="proceedToVerification()"]');
+  if (signinBtn) {
+    signinBtn.disabled = true;
+    signinBtn.classList.add('opacity-75', 'cursor-not-allowed');
+  }
+
+  fetch('/auth/send-login-code', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password })
+  })
+  .then(async (res) => {
+    // capture JSON if possible, but protect against empty body
+    let payload = null;
+    try { payload = await res.json(); } catch(e) { payload = null; }
+
+    if (!res.ok) {
+      const msg = payload?.message || (res.status === 401 ? 'Invalid email or password' : 'Failed to send verification code');
+      throw new Error(msg);
+    }
+    return payload;
+  })
+  .then((data) => {
+    if (!data) throw new Error('No response from server');
+
+    if (data.success) {
+      // Admin shortcut: skip verification
+      if (data.skipVerification) {
+        // Save admin token & user info and redirect
+        if (data.token) {
+          sessionStorage.setItem('authToken', data.token);
+          localStorage.setItem('adminToken', data.token);
+          console.log('✅ Admin token stored:', data.token.substring(0, 20) + '...');
+        }
+        if (data.user) {
+          localStorage.setItem('currentUser', JSON.stringify(data.user));
+          console.log('✅ Admin user stored:', data.user);
+        }
+
+        showSuccessModal('Welcome Admin!', `Welcome back, ${data.user?.name || 'Admin'}!`);
+
+        setTimeout(() => {
+          window.location.href = 'dashboard.html';
+        }, 1200);
+        return;
+      }
+
+      // Regular flow: show verification form
+      const credentialsForm = document.getElementById('credentials-form');
+      const verificationForm = document.getElementById('verification-form');
+      const divider = document.getElementById('divider');
+      const social = document.getElementById('social-login');
+
+      if (credentialsForm) credentialsForm.classList.add('hidden');
+      if (verificationForm) verificationForm.classList.remove('hidden');
+      if (divider) divider.classList.add('hidden');
+      if (social) social.classList.add('hidden');
+
+      const emailEl = document.getElementById('verification-email');
+      if (emailEl) emailEl.textContent = email;
+
+      const codeInput = document.getElementById('verification-code');
+      if (codeInput) {
+        codeInput.value = '';
+        codeInput.focus();
+      }
+
+      hideError();
+      startCodeTimer();
+    } else {
+      throw new Error(data.message || 'Failed to send verification code');
+    }
+  })
+  .catch(err => {
+    console.error('proceedToVerification error:', err);
+    showErrorAlert(err.message || 'Login failed. Please try again.');
+  })
+  .finally(() => {
+    isSubmitting = false;
+    if (signinBtn) {
+      signinBtn.disabled = false;
+      signinBtn.classList.remove('opacity-75', 'cursor-not-allowed');
+    }
+  });
+}
+
+/* ---------- verifyLoginCode: verify-login-code ---------- */
+async function verifyLoginCode() {
+  if (isVerifying) return;
+  const codeInput = document.getElementById('verification-code');
+  if (!codeInput) {
+    showError('Verification input not found');
+    return;
+  }
+  const code = codeInput.value.trim();
+  if (!/^\d{6}$/.test(code)) {
+    showError('Please enter a valid 6-digit code');
+    return;
+  }
+
+  if (!userEmail) {
+    showError('Session expired. Please login again.');
+    return;
+  }
+
+  isVerifying = true;
+  const verifyBtn = document.querySelector('button[onclick="verifyLoginCode()"]') || null;
+  if (verifyBtn) {
+    verifyBtn.disabled = true;
+    verifyBtn.classList.add('opacity-50', 'cursor-not-allowed');
+  }
+
+  try {
+    const res = await fetch('/auth/verify-login-code', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: userEmail, code })
+    });
+
+    let payload = null;
+    try { payload = await res.json(); } catch(e) { payload = null; }
+
+    if (!res.ok) {
+      const message = payload?.message || (res.status === 401 ? 'Invalid or expired verification code' : 'Verification failed');
+      throw new Error(message);
+    }
+
+    if (!payload) throw new Error('Empty response from server');
+
+    if (payload.success) {
+      // clear timer
+      try { clearInterval(codeExpiryTimer); } catch (e) {}
+
+      // save token and user object
+      if (payload.token) {
+        sessionStorage.setItem('authToken', payload.token);
+        // Store admin token separately for admin users
+        if (payload.user && payload.user.role === 'admin') {
+          localStorage.setItem('adminToken', payload.token);
+        } else if (payload.user && payload.user.role !== 'admin') {
+          // persist token across reloads for non-admin users only
+          localStorage.setItem('authToken', payload.token);
+        }
+      }
+      if (payload.user) localStorage.setItem('currentUser', JSON.stringify(payload.user));
+
+      showSuccessModal('Welcome Back!', `Welcome back, ${payload.user?.name || 'User'}!`);
+      hideError();
+
+      setTimeout(() => {
+        if (payload.user?.role === 'admin') {
+          window.location.href = 'dashboard.html';
+        } else {
+          window.location.href = 'index.html';
+        }
+      }, 1000);
+    } else {
+      throw new Error(payload.message || 'Verification failed');
+    }
+  } catch (err) {
+    console.error('verifyLoginCode error:', err);
+    showError(err.message || 'Verification failed. Please try again.');
+  } finally {
+    isVerifying = false;
+    if (verifyBtn) {
+      verifyBtn.disabled = false;
+      verifyBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+    }
+  }
+}
+
+/* ---------- resendLoginCode ---------- */
+function resendLoginCode() {
+  const btn = document.querySelector('button[onclick="resendLoginCode()"]');
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = 'Sending...';
+  }
+
+  if (!userEmail || !userPassword) {
+    showError('Session expired. Please re-enter credentials.');
+    if (btn) { btn.disabled = false; btn.textContent = 'Resend Code'; }
+    return;
+  }
+
+  fetch('/auth/send-login-code', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: userEmail, password: userPassword })
+  })
+  .then(async (res) => {
+    let payload = null;
+    try { payload = await res.json(); } catch(e) { payload = null; }
+    if (!res.ok) {
+      const msg = payload?.message || 'Failed to resend code';
+      throw new Error(msg);
+    }
+    return payload;
+  })
+  .then(data => {
+    if (data.success) {
+      showSuccessModal('Code Sent!', 'A new verification code has been sent to your email.');
+      const codeInput = document.getElementById('verification-code');
+      if (codeInput) codeInput.value = '';
+      clearInterval(codeExpiryTimer);
+      startCodeTimer();
+      hideError();
+    } else {
+      throw new Error(data.message || 'Failed to resend code');
+    }
+  })
+  .catch(err => {
+    console.error('resendLoginCode error:', err);
+    showError(err.message || 'Failed to resend code. Please try again.');
+  })
+  .finally(() => {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = 'Resend Code';
+    }
+  });
+}
+
+function togglePassword(inputId, button) {
+  const input = document.getElementById(inputId);
+  if (!input) {
+    console.error('Password input not found:', inputId);
+    return;
+  }
+  
+  const isPassword = input.type === 'password';
+  input.type = isPassword ? 'text' : 'password';
+  
+  // Update icon
+  const svg = button.querySelector('svg');
+  if (svg) {
+    if (isPassword) {
+      // Show "eye-off" icon
+      svg.innerHTML = `
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"></path>
+      `;
+    } else {
+      // Show "eye" icon
+      svg.innerHTML = `
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+      `;
+    }
+  }
+  
+  // Update button aria-label for accessibility
+  button.setAttribute('aria-label', isPassword ? 'Hide password' : 'Show password');
+}
+
+/* ---------- Google OAuth Error Handling ---------- */
+function handleGoogleSignInError() {
+  console.warn('⚠️ Google Sign-In script failed to load. This may be due to:');
+  console.warn('1. Network issues');
+  console.warn('2. Client ID not configured in Google Cloud Console');
+  console.warn('3. Origin not authorized for the client ID');
+  
+  // Hide Google Sign-In button if it fails to load
+  const socialLogin = document.getElementById('social-login');
+  if (socialLogin) {
+    socialLogin.innerHTML = `
+      <div class="text-center p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+        <p class="text-sm text-yellow-800">
+          <strong>Note:</strong> Google Sign-In is currently unavailable. Please use email sign-in instead.
+        </p>
+      </div>
+    `;
+  }
+}
+
+/* ---------- Google OAuth callback (keeps working) ---------- */
+function handleCredentialResponse(response) {
+  if (!response || !response.credential) {
+    console.error('Google sign-in failed: No credential in response');
+    showErrorAlert('Google sign-in failed. Please try using email sign-in instead.');
+    return;
+  }
+
+  const idToken = response.credential;
+
+  // send to your server
+  fetch('/auth/google', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token: idToken })
+  })
+  .then(async (res) => {
+    let payload = null;
+    try { payload = await res.json(); } catch(e) { payload = null; }
+    if (!res.ok) {
+      const msg = payload?.message || 'Google authentication failed';
+      throw new Error(msg);
+    }
+    return payload;
+  })
+  .then(data => {
+    if (data.success) {
+      if (data.token) {
+        sessionStorage.setItem('authToken', data.token);
+        // Store admin token separately for admin users
+        if (data.user && data.user.role === 'admin') {
+          localStorage.setItem('adminToken', data.token);
+        } else if (data.user && data.user.role !== 'admin') {
+          // persist token across reloads for non-admin users only
+          localStorage.setItem('authToken', data.token);
+        }
+      }
+      if (data.user) localStorage.setItem('currentUser', JSON.stringify(data.user));
+      showSuccessModal('Welcome!', `Welcome, ${data.user?.name || 'User'}!`);
+      setTimeout(() => {
+        if (data.user?.role === 'admin') window.location.href = 'dashboard.html';
+        else window.location.href = 'index.html';
+      }, 1000);
+    } else {
+      throw new Error(data.message || 'Google auth failed');
+    }
+  })
+  .catch(err => {
+    console.error('handleCredentialResponse error:', err);
+    showErrorAlert(err.message || 'Google authentication failed. Please try using email sign-in instead.');
+  });
+}
+
+// Suppress Google Sign-In console errors
+window.addEventListener('error', (event) => {
+  if (event.message && (
+    event.message.includes('gsi/button') ||
+    event.message.includes('GSI_LOGGER') ||
+    event.message.includes('Error retrieving a token') ||
+    event.message.includes('origin is not allowed')
+  )) {
+    event.preventDefault();
+    console.warn('Google Sign-In configuration issue detected. Using email sign-in instead.');
+    
+    // Hide Google Sign-In section after a delay to allow it to try loading first
+    setTimeout(() => {
+      const socialLogin = document.getElementById('social-login');
+      const divider = document.getElementById('divider');
+      if (socialLogin && socialLogin.querySelector('.g_id_signin')) {
+        // Check if Google Sign-In actually loaded
+        if (typeof google === 'undefined' || !google.accounts) {
+          if (divider) divider.style.display = 'none';
+          socialLogin.innerHTML = `
+            <div class="text-center p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <p class="text-sm text-blue-800 mb-2">
+                <strong>Google Sign-In</strong> is not configured for this domain.
+              </p>
+              <p class="text-xs text-blue-600">
+                Please use email sign-in or contact support for Google Sign-In setup.
+              </p>
+            </div>
+          `;
+        }
+      }
+    }, 2000);
+  }
+});
+
+/* ---------- Small DOM safety + event wiring ---------- */
+document.addEventListener('DOMContentLoaded', () => {
+  // wire up modal click to close
+  const successModal = document.getElementById('success-modal');
+  if (successModal) {
+    successModal.addEventListener('click', (e) => {
+      if (e.target === successModal) closeModal();
+    });
+  }
+
+  // verification input: allow only digits and auto-submit on 6 digits
+  const codeInput = document.getElementById('verification-code');
+  if (codeInput) {
+    codeInput.addEventListener('input', (e) => {
+      e.target.value = e.target.value.replace(/\D/g, '').slice(0, 6);
+      if (e.target.value.length === 6) {
+        // small debounce to allow final keystroke rendering
+        setTimeout(() => verifyLoginCode(), 250);
+      }
+    });
+    codeInput.addEventListener('keypress', (ev) => {
+      if (ev.key === 'Enter') {
+        ev.preventDefault();
+        verifyLoginCode();
+      }
+    });
+  }
+
+  // wire signin inputs to Enter key behavior
+  const emailInput = document.getElementById('signin-email');
+  const passInput = document.getElementById('signin-password');
+  if (emailInput) {
+    emailInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        passInput?.focus();
+      }
+    });
+  }
+  if (passInput) {
+    passInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        proceedToVerification();
+      }
+    });
+  }
+
+  // Check Google Sign-In initialization after page loads
+  setTimeout(() => {
+    if (typeof google === 'undefined' || !google.accounts) {
+      console.warn('⚠️ Google Sign-In library not loaded. This may be due to:');
+      console.warn('- Network connectivity issues');
+      console.warn('- Client ID not configured in Google Cloud Console');
+      console.warn('- Origin (localhost:3000) not authorized for the client ID');
+      console.warn('To fix: Add http://localhost:3000 to authorized JavaScript origins in Google Cloud Console');
+    }
+  }, 3000);
+
+  // ==================== DEBUGGING TOOLS ====================
+  // Run diagnostic: window.runDiagnostic() in console
+  window.runDiagnostic = async function() {
+    console.log('%c🔍 STARTING FULL DIAGNOSTIC...', 'font-size: 16px; font-weight: bold; color: #cda45e');
+    
+    const results = {
+      server: false,
+      forgotPassword: false,
+      googleSignIn: false,
+      errors: []
+    };
+    
+    // 1. Server Health
+    console.log('%c\n1️⃣ Testing Server Health...', 'font-weight: bold');
+    try {
+      const health = await fetch('http://localhost:3000/api/health').then(r => r.json());
+      console.log('✅ Server Status:', health.status);
+      console.log('   Database:', health.database);
+      console.log('   Email:', health.email);
+      results.server = true;
+    } catch (e) {
+      console.error('❌ Server not reachable:', e.message);
+      results.errors.push('Server not running or unreachable');
+      return results;
+    }
+    
+    // 2. Test Forgot Password
+    console.log('%c\n2️⃣ Testing Forgot Password Endpoint...', 'font-weight: bold');
+    try {
+      const res = await fetch('http://localhost:3000/auth/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: 'test@example.com' })
+      });
+      const data = await res.json();
+      if (res.status === 404) {
+        console.error('❌ Endpoint not found (404) - Route not registered');
+        results.errors.push('Forgot password endpoint returns 404');
+      } else {
+        console.log(`✅ Endpoint exists - Status: ${res.status}`);
+        console.log('   Response:', data.message || data);
+        results.forgotPassword = true;
+      }
+    } catch (e) {
+      console.error('❌ Request failed:', e.message);
+      results.errors.push('Forgot password request failed: ' + e.message);
+    }
+    
+    // 3. Test Reset Password
+    console.log('%c\n3️⃣ Testing Reset Password Endpoint...', 'font-weight: bold');
+    try {
+      const res = await fetch('http://localhost:3000/auth/reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: 'test@example.com', code: '123456', newPassword: 'test123' })
+      });
+      const data = await res.json();
+      if (res.status === 404) {
+        console.error('❌ Endpoint not found (404)');
+        results.errors.push('Reset password endpoint returns 404');
+      } else {
+        console.log(`✅ Endpoint exists - Status: ${res.status}`);
+        console.log('   Response:', data.message || data);
+      }
+    } catch (e) {
+      console.error('❌ Request failed:', e.message);
+    }
+    
+    // 4. Check Google Sign-In
+    console.log('%c\n4️⃣ Checking Google Sign-In...', 'font-weight: bold');
+    setTimeout(() => {
+      if (typeof google !== 'undefined' && google.accounts) {
+        console.log('✅ Google Sign-In library loaded');
+        results.googleSignIn = true;
+      } else {
+        console.error('❌ Google Sign-In library NOT loaded');
+        console.log('📍 Current origin:', window.location.origin);
+        console.log('💡 Fix: Add ' + window.location.origin + ' to Google Cloud Console authorized origins');
+        results.errors.push('Google Sign-In library not loaded');
+      }
+      
+      // Summary
+      console.log('%c\n📊 DIAGNOSTIC SUMMARY', 'font-size: 14px; font-weight: bold; color: #cda45e');
+      console.table({
+        'Server Running': results.server ? '✅' : '❌',
+        'Forgot Password': results.forgotPassword ? '✅' : '❌',
+        'Google Sign-In': results.googleSignIn ? '✅' : '❌',
+        'Errors Found': results.errors.length
+      });
+      
+      if (results.errors.length > 0) {
+        console.log('%c\n❌ Issues Found:', 'font-weight: bold; color: red');
+        results.errors.forEach((err, i) => console.log(`${i + 1}. ${err}`));
+        console.log('\n📖 See DEBUGGING_GUIDE.md for detailed fix instructions');
+      } else {
+        console.log('%c\n✅ All checks passed!', 'font-weight: bold; color: green');
+      }
+    }, 2000);
+    
+    return results;
+  };
+
+  // Quick API test function: window.testAPI(endpoint, method, body)
+  window.testAPI = async function(endpoint, method = 'GET', body = null) {
+    const options = {
+      method,
+      headers: { 'Content-Type': 'application/json' }
+    };
+    
+    if (body) {
+      options.body = JSON.stringify(body);
+    }
+    
+    console.log(`\n🧪 Testing: ${method} ${endpoint}`);
+    console.log('📤 Request:', body || 'No body');
+    
+    try {
+      const startTime = Date.now();
+      const res = await fetch(`http://localhost:3000${endpoint}`, options);
+      const duration = Date.now() - startTime;
+      
+      let data;
+      try {
+        data = await res.json();
+      } catch (e) {
+        data = await res.text();
+      }
+      
+      console.log(`⏱️ Duration: ${duration}ms`);
+      console.log(`📊 Status: ${res.status} ${res.statusText}`);
+      console.log(`📥 Response:`, data);
+      
+      if (res.status >= 400) {
+        console.error('❌ Request failed');
+      } else {
+        console.log('✅ Request succeeded');
+      }
+      
+      return { status: res.status, data, headers: res.headers };
+    } catch (err) {
+      console.error('❌ Request Failed:', err);
+      return { error: err.message };
+    }
+  };
+
+  console.log('%c🛠️ Debugging Tools Available:', 'font-size: 12px; font-weight: bold; color: #cda45e');
+  console.log('  • window.runDiagnostic() - Run full diagnostic');
+  console.log('  • window.testAPI(endpoint, method, body) - Test any API endpoint');
+  console.log('  • Example: window.testAPI("/auth/forgot-password", "POST", { email: "test@example.com" })');
+
+  // Forgot password form event listeners
+  const forgotEmailInput = document.getElementById('forgot-email');
+  if (forgotEmailInput) {
+    forgotEmailInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        requestPasswordReset();
+      }
+    });
+  }
+
+  const forgotResetCodeInput = document.getElementById('forgot-reset-code');
+  if (forgotResetCodeInput) {
+    forgotResetCodeInput.addEventListener('input', (e) => {
+      e.target.value = e.target.value.replace(/\D/g, '').slice(0, 6);
+    });
+    forgotResetCodeInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        resetPassword();
+      }
+    });
+  }
+
+  const forgotNewPasswordInput = document.getElementById('forgot-new-password');
+  const forgotConfirmPasswordInput = document.getElementById('forgot-confirm-password');
+  if (forgotNewPasswordInput) {
+    forgotNewPasswordInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        forgotConfirmPasswordInput?.focus();
+      }
+    });
+  }
+  if (forgotConfirmPasswordInput) {
+    forgotConfirmPasswordInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        resetPassword();
+      }
+    });
+  }
+});
+
+/**
+ * Return to credentials form from verification
+ */
+function backToCredentials() {
+  // Clear timer
+  try { clearInterval(codeExpiryTimer); } catch (e) {}
+  
+  // Clear verification input
+  const codeInput = document.getElementById('verification-code');
+  if (codeInput) codeInput.value = '';
+  
+  // Hide verification form
+  const verificationForm = document.getElementById('verification-form');
+  if (verificationForm) verificationForm.classList.add('hidden');
+  
+  // Show credentials form
+  const credentialsForm = document.getElementById('credentials-form');
+  if (credentialsForm) credentialsForm.classList.remove('hidden');
+  
+  // Show divider and social login
+  const divider = document.getElementById('divider');
+  const social = document.getElementById('social-login');
+  if (divider) divider.classList.remove('hidden');
+  if (social) social.classList.remove('hidden');
+  
+  // Clear errors
+  hideError();
+  hideErrorAlert();
+  
+  // Reset global state
+  userEmail = '';
+  userPassword = '';
+  
+  console.log('✅ Returned to credentials form');
+}
+
+// ==================== FORGOT PASSWORD ====================
+
+let forgotPasswordEmail = '';
+let isRequestingReset = false;
+let isResettingPassword = false;
+
+/**
+ * Open forgot password modal
+ */
+function openForgotPasswordModal() {
+  const modal = document.getElementById('forgot-password-modal');
+  if (!modal) return;
+  
+  modal.classList.remove('hidden');
+  modal.classList.add('flex');
+  
+  // Reset to step 1
+  document.getElementById('forgot-password-step1').classList.remove('hidden');
+  document.getElementById('forgot-password-step2').classList.add('hidden');
+  
+  // Clear inputs
+  const emailInput = document.getElementById('forgot-email');
+  if (emailInput) emailInput.value = '';
+  
+  hideForgotPasswordError();
+}
+
+/**
+ * Close forgot password modal
+ */
+function closeForgotPasswordModal(event) {
+  if (event && event.target !== event.currentTarget) return;
+  
+  const modal = document.getElementById('forgot-password-modal');
+  if (modal) {
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+  }
+  
+  // Reset form
+  forgotPasswordEmail = '';
+  hideForgotPasswordError();
+}
+
+/**
+ * Show error in forgot password modal
+ */
+function showForgotPasswordError(message, step = 1) {
+  const errorEl = step === 1 
+    ? document.getElementById('forgot-password-error')
+    : document.getElementById('forgot-password-verify-error');
+  
+  if (errorEl) {
+    errorEl.textContent = message;
+    errorEl.classList.remove('hidden');
+    setTimeout(() => errorEl.classList.add('hidden'), 5000);
+  }
+}
+
+/**
+ * Hide forgot password errors
+ */
+function hideForgotPasswordError() {
+  const error1 = document.getElementById('forgot-password-error');
+  const error2 = document.getElementById('forgot-password-verify-error');
+  if (error1) error1.classList.add('hidden');
+  if (error2) error2.classList.add('hidden');
+}
+
+/**
+ * Request password reset code
+ */
+async function requestPasswordReset() {
+  if (isRequestingReset) return;
+  
+  const emailInput = document.getElementById('forgot-email');
+  if (!emailInput) {
+    showForgotPasswordError('Email input not found');
+    return;
+  }
+  
+  const email = emailInput.value.trim();
+  
+  if (!email) {
+    showForgotPasswordError('Please enter your email address', 1);
+    return;
+  }
+  
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    showForgotPasswordError('Please enter a valid email address', 1);
+    return;
+  }
+  
+  isRequestingReset = true;
+  hideForgotPasswordError();
+  
+  const btn = document.getElementById('forgot-password-btn');
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = 'Sending...';
+    btn.classList.add('opacity-75', 'cursor-not-allowed');
+  }
+  
+  try {
+    // TODO: Replace with actual backend endpoint when available
+    // For now, using a placeholder that will work when backend is ready
+    const res = await fetch('/auth/forgot-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email })
+    });
+    
+    let payload = null;
+    try { payload = await res.json(); } catch(e) { payload = null; }
+    
+    if (!res.ok) {
+      // Handle rate limiting
+      if (res.status === 429) {
+        const msg = payload?.message || 'Too many requests. Please wait a moment and try again.';
+        throw new Error(msg);
+      }
+      const msg = payload?.message || 'Failed to send reset code. Please try again.';
+      throw new Error(msg);
+    }
+    
+    if (payload && payload.success) {
+      forgotPasswordEmail = email;
+      
+      // Move to step 2
+      document.getElementById('forgot-password-step1').classList.add('hidden');
+      document.getElementById('forgot-password-step2').classList.remove('hidden');
+      
+      const emailDisplay = document.getElementById('forgot-reset-email');
+      if (emailDisplay) emailDisplay.textContent = email;
+      
+      const codeInput = document.getElementById('forgot-reset-code');
+      if (codeInput) {
+        codeInput.value = '';
+        codeInput.focus();
+      }
+      
+      // Show success message with dev code if available
+      let message = 'A password reset code has been sent to your email.';
+      if (payload.devCode) {
+        message += `\n\n🔧 Development Code: ${payload.devCode}`;
+        console.log('🔧 Password reset code (dev):', payload.devCode);
+        // Also show in alert for visibility during development
+        alert(`Password Reset Code (Dev Mode):\n\n${payload.devCode}\n\nThis code is shown in development mode only.`);
+      }
+      showSuccessModal('Reset Code Sent!', message);
+      
+    } else {
+      throw new Error(payload?.message || 'Failed to send reset code');
+    }
+    
+  } catch (err) {
+    console.error('requestPasswordReset error:', err);
+    
+    // If endpoint doesn't exist yet, show helpful message
+    if (err.message.includes('Failed to fetch') || err.message.includes('404')) {
+      showForgotPasswordError('Password reset feature is currently being set up. Please contact support for assistance.', 1);
+    } else {
+      showForgotPasswordError(err.message || 'Failed to send reset code. Please try again.', 1);
+    }
+  } finally {
+    isRequestingReset = false;
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = 'Send Reset Code';
+      btn.classList.remove('opacity-75', 'cursor-not-allowed');
+    }
+  }
+}
+
+/**
+ * Reset password with code
+ */
+async function resetPassword() {
+  if (isResettingPassword) return;
+  
+  const codeInput = document.getElementById('forgot-reset-code');
+  const newPasswordInput = document.getElementById('forgot-new-password');
+  const confirmPasswordInput = document.getElementById('forgot-confirm-password');
+  
+  if (!codeInput || !newPasswordInput || !confirmPasswordInput) {
+    showForgotPasswordError('Form elements not found', 2);
+    return;
+  }
+  
+  const code = codeInput.value.trim();
+  const newPassword = newPasswordInput.value;
+  const confirmPassword = confirmPasswordInput.value;
+  
+  if (!code || !/^\d{6}$/.test(code)) {
+    showForgotPasswordError('Please enter a valid 6-digit code', 2);
+    return;
+  }
+  
+  if (!newPassword) {
+    showForgotPasswordError('Please enter a new password', 2);
+    return;
+  }
+  
+  if (newPassword.length < 6) {
+    showForgotPasswordError('Password must be at least 6 characters', 2);
+    return;
+  }
+  
+  if (newPassword !== confirmPassword) {
+    showForgotPasswordError('Passwords do not match', 2);
+    return;
+  }
+  
+  if (!forgotPasswordEmail) {
+    showForgotPasswordError('Session expired. Please start over.', 2);
+    return;
+  }
+  
+  isResettingPassword = true;
+  hideForgotPasswordError();
+  
+  const btn = document.getElementById('forgot-reset-btn');
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = 'Resetting...';
+    btn.classList.add('opacity-75', 'cursor-not-allowed');
+  }
+  
+  try {
+    // TODO: Replace with actual backend endpoint when available
+    const res = await fetch('/auth/reset-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: forgotPasswordEmail,
+        code: code,
+        newPassword: newPassword
+      })
+    });
+    
+    let payload = null;
+    try { payload = await res.json(); } catch(e) { payload = null; }
+    
+    if (!res.ok) {
+      // Handle specific error cases
+      if (res.status === 400) {
+        const msg = payload?.message || 'Invalid code or password requirements not met.';
+        throw new Error(msg);
+      }
+      if (res.status === 429) {
+        const msg = payload?.message || 'Too many requests. Please wait a moment and try again.';
+        throw new Error(msg);
+      }
+      const msg = payload?.message || 'Failed to reset password. Please try again.';
+      throw new Error(msg);
+    }
+    
+    if (payload && payload.success) {
+      showSuccessModal('Password Reset!', 'Your password has been successfully reset. You can now sign in with your new password.');
+      
+      setTimeout(() => {
+        closeForgotPasswordModal();
+        // Clear form
+        codeInput.value = '';
+        newPasswordInput.value = '';
+        confirmPasswordInput.value = '';
+        forgotPasswordEmail = '';
+        
+        // Optionally redirect to login
+        // window.location.href = 'login.html';
+      }, 2000);
+      
+    } else {
+      throw new Error(payload?.message || 'Failed to reset password');
+    }
+    
+  } catch (err) {
+    console.error('resetPassword error:', err);
+    
+    // If endpoint doesn't exist yet, show helpful message
+    if (err.message.includes('Failed to fetch') || err.message.includes('404')) {
+      showForgotPasswordError('Password reset feature is currently being set up. Please contact support for assistance.', 2);
+    } else {
+      showForgotPasswordError(err.message || 'Failed to reset password. Please try again.', 2);
+    }
+  } finally {
+    isResettingPassword = false;
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = 'Reset Password';
+      btn.classList.remove('opacity-75', 'cursor-not-allowed');
+    }
+  }
+}
+
+/**
+ * Go back to step 1 of forgot password
+ */
+function backToForgotPasswordStep1() {
+  document.getElementById('forgot-password-step2').classList.add('hidden');
+  document.getElementById('forgot-password-step1').classList.remove('hidden');
+  
+  // Clear step 2 inputs
+  const codeInput = document.getElementById('forgot-reset-code');
+  const newPasswordInput = document.getElementById('forgot-new-password');
+  const confirmPasswordInput = document.getElementById('forgot-confirm-password');
+  
+  if (codeInput) codeInput.value = '';
+  if (newPasswordInput) newPasswordInput.value = '';
+  if (confirmPasswordInput) confirmPasswordInput.value = '';
+  
+  hideForgotPasswordError();
+}
+
+</script>
+
+
+</body>
+</html>

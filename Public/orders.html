@@ -428,7 +428,7 @@
 // ============================================
 // CONFIGURATION
 // ============================================
-const API_URL = 'http://localhost:3000/api';
+const API_URL = '/api';
 const SILENT_REFRESH_MS = 10000;
 const RESTAURANT_LOCATION = [14.6091, 121.0223];
 
@@ -965,8 +965,7 @@ function initializeSocket() {
   }
 
   try {
-    const socketUrl = 'http://localhost:3000';
-    socket = io(socketUrl, {
+    socket = io(window.location.origin, {
       reconnection: true,
       reconnectionAttempts: Infinity,
       reconnectionDelay: 1000,

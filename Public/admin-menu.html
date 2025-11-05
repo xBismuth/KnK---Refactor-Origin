@@ -262,21 +262,21 @@
   </nav>
 </header>
 
-<main class="max-w-7xl mx-auto px-6 py-6">
+<main class="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-6">
 
-  <div class="flex justify-between items-center mb-6">
+  <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
     <div>
-      <h2 class="text-2xl font-semibold text-gray-900">Menu Items</h2>
-      <p class="text-sm text-gray-500 mt-1">Manage your restaurant menu</p>
+      <h2 class="text-xl sm:text-2xl font-semibold text-gray-900">Menu Items</h2>
+      <p class="text-xs sm:text-sm text-gray-500 mt-1">Manage your restaurant menu</p>
     </div>
-    <button onclick="openAddModal()" class="btn btn-primary">Add Item</button>
+    <button onclick="openAddModal()" class="btn btn-primary w-full sm:w-auto">Add Item</button>
   </div>
 
-  <div class="mb-4 flex gap-2">
-    <button onclick="filterItems('all', this)" class="filter-btn active">All</button>
-    <button onclick="filterItems('featured', this)" class="filter-btn">Featured</button>
-    <button onclick="filterItems('active', this)" class="filter-btn">Active</button>
-    <button onclick="filterItems('inactive', this)" class="filter-btn">Inactive</button>
+  <div class="mb-4 flex flex-wrap gap-2">
+    <button onclick="filterItems('all', this)" class="filter-btn active text-xs sm:text-sm">All</button>
+    <button onclick="filterItems('featured', this)" class="filter-btn text-xs sm:text-sm">Featured</button>
+    <button onclick="filterItems('active', this)" class="filter-btn text-xs sm:text-sm">Active</button>
+    <button onclick="filterItems('inactive', this)" class="filter-btn text-xs sm:text-sm">Inactive</button>
   </div>
 
   <div id="menu-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -408,7 +408,11 @@ async function loadUserInfo() {
     
     const data = await res.json();
     if (data.success && data.user) {
-      document.getElementById('user-name').textContent = data.user.name || 'Admin';
+      const adminName = data.user.name || 'Admin';
+      const userNameEl = document.getElementById('user-name');
+      const mobileUserNameEl = document.getElementById('mobile-user-name');
+      if (userNameEl) userNameEl.textContent = adminName;
+      if (mobileUserNameEl) mobileUserNameEl.textContent = adminName;
     }
   } catch(e) {
     console.error('User load error:', e);
@@ -667,6 +671,11 @@ function closeDeleteModal(e) {
   if (!e || e.target === e.currentTarget) {
     document.getElementById('delete-modal').classList.add('hidden');
   }
+}
+
+function toggleMobileMenu() {
+  const menu = document.getElementById('mobile-menu');
+  if (menu) menu.classList.toggle('hidden');
 }
 
 function logout() {

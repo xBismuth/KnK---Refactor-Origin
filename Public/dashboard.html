@@ -328,26 +328,54 @@
       </div>
       
       <div class="flex items-center gap-2 sm:gap-3 flex-wrap">
-        <div id="connection-status" class="status-indicator status-disconnected">
+        <div id="connection-status" class="status-indicator status-disconnected hidden sm:flex">
           <span id="connection-text">Connecting</span>
         </div>
         
         <a href="admin-menu.html" class="hidden sm:inline-flex px-3 py-2 text-sm font-medium text-gray-600 hover:text-[#cda45e] rounded-lg hover:bg-gray-50 transition">Menu</a>
         <a href="admin-users.html" class="hidden sm:inline-flex px-3 py-2 text-sm font-medium text-gray-600 hover:text-[#cda45e] rounded-lg hover:bg-gray-50 transition">Users</a>
-        <a href="admin-customer-support.html" class="hidden sm:inline-flex px-3 py-2 text-sm font-medium text-gray-600 hover:text-[#cda45e] rounded-lg hover:bg-gray-50 transition">Support</a>
+        <a href="admin-customer-support.html" class="hidden lg:inline-flex px-3 py-2 text-sm font-medium text-gray-600 hover:text-[#cda45e] rounded-lg hover:bg-gray-50 transition">Support</a>
         
-        <button onclick="refreshDashboard()" class="btn btn-secondary text-xs sm:text-sm">
+        <button onclick="refreshDashboard()" class="btn btn-secondary text-xs sm:text-sm hidden sm:flex">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
           </svg>
           <span class="hidden sm:inline">Refresh</span>
         </button>
         
-        <div class="border-l pl-2 sm:pl-3 ml-2 sm:ml-3 flex items-center gap-2">
+        <button onclick="toggleMobileMenu()" class="sm:hidden p-2 rounded-lg hover:bg-gray-100">
+          <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+          </svg>
+        </button>
+        
+        <div class="hidden sm:flex border-l pl-2 sm:pl-3 ml-2 sm:ml-3 items-center gap-2">
           <div class="text-xs sm:text-sm font-semibold" id="user-name">Loading...</div>
           <button onclick="logout()" class="px-3 py-2 text-xs sm:text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg transition">Logout</button>
         </div>
       </div>
+    </div>
+    <!-- Mobile Menu -->
+    <div id="mobile-menu" class="hidden sm:hidden pb-4 border-t mt-2 pt-4">
+      <div class="flex flex-col space-y-2">
+        <div id="mobile-connection-status" class="status-indicator status-disconnected mb-2">
+          <span id="mobile-connection-text">Connecting</span>
+        </div>
+        <a href="admin-menu.html" class="px-4 py-2 text-sm font-medium text-gray-600 hover:text-[#cda45e] rounded-lg hover:bg-gray-50 transition">Menu</a>
+        <a href="admin-users.html" class="px-4 py-2 text-sm font-medium text-gray-600 hover:text-[#cda45e] rounded-lg hover:bg-gray-50 transition">Users</a>
+        <a href="admin-customer-support.html" class="px-4 py-2 text-sm font-medium text-gray-600 hover:text-[#cda45e] rounded-lg hover:bg-gray-50 transition">Support</a>
+        <button onclick="refreshDashboard()" class="btn btn-secondary text-sm w-full justify-center">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+          </svg>
+          Refresh
+        </button>
+        <div class="flex items-center justify-between pt-2 border-t">
+          <div class="text-sm font-semibold" id="mobile-user-name">Loading...</div>
+          <button onclick="logout()" class="px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg transition">Logout</button>
+        </div>
+      </div>
+    </div>
     </div>
   </nav>
 </header>
@@ -861,15 +889,27 @@ function initializeSocket() {
 function updateConnectionStatus(connected) {
   const indicator = document.getElementById('connection-status');
   const text = document.getElementById('connection-text');
+  const mobileIndicator = document.getElementById('mobile-connection-status');
+  const mobileText = document.getElementById('mobile-connection-text');
   
-  if (!indicator || !text) return;
+  if (indicator && text) {
+    if (connected) {
+      indicator.className = 'status-indicator status-connected hidden sm:flex';
+      text.textContent = 'Connected';
+    } else {
+      indicator.className = 'status-indicator status-disconnected hidden sm:flex';
+      text.textContent = 'Disconnected';
+    }
+  }
   
-  if (connected) {
-    indicator.className = 'status-indicator status-connected';
-    text.textContent = 'Connected';
-  } else {
-    indicator.className = 'status-indicator status-disconnected';
-    text.textContent = 'Disconnected';
+  if (mobileIndicator && mobileText) {
+    if (connected) {
+      mobileIndicator.className = 'status-indicator status-connected';
+      mobileText.textContent = 'Connected';
+    } else {
+      mobileIndicator.className = 'status-indicator status-disconnected';
+      mobileText.textContent = 'Disconnected';
+    }
   }
 }
 
@@ -885,7 +925,10 @@ async function loadAdminInfo() {
     
     if (data.success && data.user) {
       const adminName = data.user.name || 'Admin';
-      document.getElementById('user-name').textContent = adminName;
+      const userNameEl = document.getElementById('user-name');
+      const mobileUserNameEl = document.getElementById('mobile-user-name');
+      if (userNameEl) userNameEl.textContent = adminName;
+      if (mobileUserNameEl) mobileUserNameEl.textContent = adminName;
       console.log('✅ Admin user info loaded:', adminName);
     }
   } catch (e) {
@@ -1445,6 +1488,14 @@ async function updateDeliveryStatus() {
 }
 
 // ==================== UTILITIES ====================
+
+/**
+ * Toggle mobile menu
+ */
+function toggleMobileMenu() {
+  const menu = document.getElementById('mobile-menu');
+  if (menu) menu.classList.toggle('hidden');
+}
 
 /**
  * Refresh entire dashboard

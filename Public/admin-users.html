@@ -238,20 +238,36 @@
 
 <!-- HEADER -->
 <header class="bg-white border-b sticky top-0 z-50 backdrop-blur-md bg-white/80">
-  <nav class="max-w-7xl mx-auto px-6">
-    <div class="flex justify-between items-center h-16">
-      <div class="flex items-center gap-3">
-        <img src="assets/images/logo1.png" alt="Logo" class="w-12 h-12 rounded-full shadow-lg" />
+  <nav class="max-w-7xl mx-auto px-4 sm:px-6">
+    <div class="flex justify-between items-center h-14 sm:h-16">
+      <div class="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+        <img src="assets/images/logo1.png" alt="Logo" class="w-10 h-10 sm:w-12 sm:h-12 rounded-full shadow-lg" />
         <div>
-          <h1 class="text-lg font-bold bg-gradient-to-r from-[#cda45e] to-[#b8924e] bg-clip-text text-transparent">User Management</h1>
-          <div class="text-xs text-gray-500">Kusina ni Katya</div>
+          <h1 class="text-base sm:text-lg font-bold bg-gradient-to-r from-[#cda45e] to-[#b8924e] bg-clip-text text-transparent">User Management</h1>
+          <div class="text-xs text-gray-500 hidden sm:block">Kusina ni Katya</div>
         </div>
       </div>
-      <div class="flex items-center gap-3">
+      <div class="flex items-center gap-2 sm:gap-3">
+        <a href="dashboard.html" class="hidden sm:inline-flex px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium text-gray-600 hover:text-[#cda45e] rounded-lg hover:bg-gray-50 transition">Dashboard</a>
+        <a href="admin-menu.html" class="hidden sm:inline-flex px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium text-gray-600 hover:text-[#cda45e] rounded-lg hover:bg-gray-50 transition">Menu</a>
+        <button onclick="toggleMobileMenu()" class="sm:hidden p-2 rounded-lg hover:bg-gray-100">
+          <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+          </svg>
+        </button>
+        <div class="hidden sm:flex border-l pl-2 sm:pl-3 ml-2 sm:ml-3 items-center gap-2">
+          <div class="text-xs sm:text-sm font-semibold" id="user-name">Admin</div>
+          <button onclick="logout()" class="px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg transition">Logout</button>
+        </div>
+      </div>
+    </div>
+    <!-- Mobile Menu -->
+    <div id="mobile-menu" class="hidden sm:hidden pb-4 border-t mt-2 pt-4">
+      <div class="flex flex-col space-y-2">
         <a href="dashboard.html" class="px-4 py-2 text-sm font-medium text-gray-600 hover:text-[#cda45e] rounded-lg hover:bg-gray-50 transition">Dashboard</a>
         <a href="admin-menu.html" class="px-4 py-2 text-sm font-medium text-gray-600 hover:text-[#cda45e] rounded-lg hover:bg-gray-50 transition">Menu</a>
-        <div class="border-l pl-3 ml-3 flex items-center gap-2">
-          <div class="text-sm font-semibold" id="user-name">Admin</div>
+        <div class="flex items-center justify-between pt-2 border-t">
+          <div class="text-sm font-semibold" id="mobile-user-name">Admin</div>
           <button onclick="logout()" class="px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg transition">Logout</button>
         </div>
       </div>
@@ -260,12 +276,12 @@
 </header>
 
 <!-- MAIN CONTENT -->
-<main class="max-w-7xl mx-auto px-6 py-8">
+<main class="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
 
-  <div class="flex justify-between items-center mb-8">
+  <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 sm:mb-8">
     <div>
-      <h2 class="text-3xl font-bold text-gray-900">Users</h2>
-      <p class="text-sm text-gray-500 mt-1">Manage users and vouchers</p>
+      <h2 class="text-2xl sm:text-3xl font-bold text-gray-900">Users</h2>
+      <p class="text-xs sm:text-sm text-gray-500 mt-1">Manage users and vouchers</p>
     </div>
     <button onclick="loadUsers()" class="btn btn-primary flex items-center gap-2">
       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -276,18 +292,18 @@
   </div>
 
   <!-- FILTERS -->
-  <div class="mb-6 flex gap-3 flex-wrap">
-    <button onclick="filterUsers('all', this)" class="filter-btn active">All</button>
-    <button onclick="filterUsers('admin', this)" class="filter-btn">Admins</button>
-    <button onclick="filterUsers('customer', this)" class="filter-btn">Customers</button>
-    <button onclick="filterUsers('inactive', this)" class="filter-btn">Inactive</button>
+  <div class="mb-4 sm:mb-6 flex gap-2 sm:gap-3 flex-wrap">
+    <button onclick="filterUsers('all', this)" class="filter-btn active text-xs sm:text-sm">All</button>
+    <button onclick="filterUsers('admin', this)" class="filter-btn text-xs sm:text-sm">Admins</button>
+    <button onclick="filterUsers('customer', this)" class="filter-btn text-xs sm:text-sm">Customers</button>
+    <button onclick="filterUsers('inactive', this)" class="filter-btn text-xs sm:text-sm">Inactive</button>
   </div>
 
   <!-- SEARCH -->
-  <div class="mb-6">
+  <div class="mb-4 sm:mb-6">
     <input type="text" id="search-input" placeholder="Search users by name or email..." 
            onkeyup="searchUsers()" 
-           class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-sm focus:border-[#cda45e] focus:outline-none transition shadow-sm">
+           class="w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-xl text-xs sm:text-sm focus:border-[#cda45e] focus:outline-none transition shadow-sm">
   </div>
 
   <!-- USERS GRID -->
@@ -624,7 +640,10 @@ async function loadAdminInfo() {
     
     if (data.success && data.user) {
       const adminName = data.user.name || 'Admin';
-      document.getElementById('user-name').textContent = adminName;
+      const userNameEl = document.getElementById('user-name');
+      const mobileUserNameEl = document.getElementById('mobile-user-name');
+      if (userNameEl) userNameEl.textContent = adminName;
+      if (mobileUserNameEl) mobileUserNameEl.textContent = adminName;
       console.log('✅ Admin user info loaded:', adminName);
     }
   } catch(e) {
@@ -1175,6 +1194,14 @@ function searchUsers() {
 }
 
 // ==================== UTILITIES ====================
+
+/**
+ * Toggle mobile menu
+ */
+function toggleMobileMenu() {
+  const menu = document.getElementById('mobile-menu');
+  if (menu) menu.classList.toggle('hidden');
+}
 
 /**
  * Logout admin

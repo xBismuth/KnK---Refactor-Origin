@@ -30,67 +30,86 @@ exports.submitTicket = async (req, res) => {
 
     console.log(`✅ New support ticket created: ID ${result.insertId} from ${email}`);
 
-    // Send confirmation email
-    try {
-      await emailTransporter.sendMail({
-        from: {
-          name: 'Kusina ni Katya',
-          address: process.env.MAIL_USER
-        },
-        to: email,
-        subject: 'We received your message - Kusina ni Katya',
-        html: `
-          <!DOCTYPE html>
-          <html>
-          <head>
-            <meta charset="UTF-8">
-            <style>
-              body { font-family: 'Segoe UI', sans-serif; background-color: #f4f4f4; margin: 0; padding: 0; }
-              .container { max-width: 600px; margin: 20px auto; background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-              .header { background: linear-gradient(135deg, #cda45e 0%, #b8924e 100%); color: white; padding: 30px; text-align: center; }
-              .header h1 { margin: 0; font-size: 28px; }
-              .content { padding: 40px 30px; }
-              .message-box { background: #f8f9fa; border-left: 4px solid #cda45e; padding: 20px; margin: 20px 0; border-radius: 5px; }
-              .footer { background: #f8f9fa; padding: 20px; text-align: center; font-size: 14px; color: #666; }
-            </style>
-          </head>
-          <body>
-            <div class="container">
-              <div class="header">
-                <h1>Kusina ni Katya</h1>
-                <p style="margin: 5px 0 0 0; opacity: 0.9;">Authentic Filipino Cuisine</p>
-              </div>
-              
-              <div class="content">
-                <p style="font-size: 18px; color: #333; margin-bottom: 20px;">Hello ${name}! 👋</p>
-                <p style="font-size: 16px; color: #666;">
-                  Thank you for reaching out to us. We've received your message and our team will get back to you within 24 hours.
-                </p>
-                
-                <div class="message-box">
-                  <p style="margin: 0 0 10px 0; font-weight: bold; color: #333;">Your Message:</p>
-                  <p style="margin: 0 0 5px 0; color: #666;"><strong>Subject:</strong> ${subject}</p>
-                  <p style="margin: 0; color: #666;"><strong>Message:</strong> ${message}</p>
+    // Send confirmation email (non-blocking with timeout)
+    const sendEmailWithTimeout = async () => {
+      try {
+        const emailPromise = emailTransporter.sendMail({
+          from: {
+            name: 'Kusina ni Katya',
+            address: process.env.MAIL_USER
+          },
+          to: email,
+          subject: 'We received your message - Kusina ni Katya',
+          html: `
+            <!DOCTYPE html>
+            <html>
+            <head>
+              <meta charset="UTF-8">
+              <style>
+                body { font-family: 'Segoe UI', sans-serif; background-color: #f4f4f4; margin: 0; padding: 0; }
+                .container { max-width: 600px; margin: 20px auto; background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+                .header { background: linear-gradient(135deg, #cda45e 0%, #b8924e 100%); color: white; padding: 30px; text-align: center; }
+                .header h1 { margin: 0; font-size: 28px; }
+                .content { padding: 40px 30px; }
+                .message-box { background: #f8f9fa; border-left: 4px solid #cda45e; padding: 20px; margin: 20px 0; border-radius: 5px; }
+                .footer { background: #f8f9fa; padding: 20px; text-align: center; font-size: 14px; color: #666; }
+              </style>
+            </head>
+            <body>
+              <div class="container">
+                <div class="header">
+                  <h1>Kusina ni Katya</h1>
+                  <p style="margin: 5px 0 0 0; opacity: 0.9;">Authentic Filipino Cuisine</p>
                 </div>
                 
-                <p style="font-size: 14px; color: #666;">
-                  If you have any urgent concerns, please call us at <strong>+63 912 345 6789</strong>.
-                </p>
+                <div class="content">
+                  <p style="font-size: 18px; color: #333; margin-bottom: 20px;">Hello ${name}! 👋</p>
+                  <p style="font-size: 16px; color: #666;">
+                    Thank you for reaching out to us. We've received your message and our team will get back to you within 24 hours.
+                  </p>
+                  
+                  <div class="message-box">
+                    <p style="margin: 0 0 10px 0; font-weight: bold; color: #333;">Your Message:</p>
+                    <p style="margin: 0 0 5px 0; color: #666;"><strong>Subject:</strong> ${subject}</p>
+                    <p style="margin: 0; color: #666;"><strong>Message:</strong> ${message}</p>
+                  </div>
+                  
+                  <p style="font-size: 14px; color: #666;">
+                    If you have any urgent concerns, please call us at <strong>+63 912 345 6789</strong>.
+                  </p>
+                </div>
+                
+                <div class="footer">
+                  <p style="margin: 0 0 10px 0;">© 2025 Kusina ni Katya. All Rights Reserved.</p>
+                  <p style="margin: 0;">Aurora Blvd, Quezon City, Manila, Philippines</p>
+                </div>
               </div>
-              
-              <div class="footer">
-                <p style="margin: 0 0 10px 0;">© 2025 Kusina ni Katya. All Rights Reserved.</p>
-                <p style="margin: 0;">Aurora Blvd, Quezon City, Manila, Philippines</p>
-              </div>
-            </div>
-          </body>
-          </html>
-        `
-      });
-      console.log('📧 Confirmation email sent to customer');
-    } catch (emailError) {
-      console.error('⚠️ Failed to send confirmation email:', emailError.message);
-    }
+            </body>
+            </html>
+          `
+        });
+
+        // Add a 15-second timeout wrapper
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error('Email send timeout after 15 seconds')), 15000);
+        });
+
+        await Promise.race([emailPromise, timeoutPromise]);
+        console.log('📧 Confirmation email sent to customer');
+      } catch (emailError) {
+        // Don't throw - email failure shouldn't block the response
+        console.error('⚠️ Failed to send confirmation email:', emailError.message);
+        // Log full error in development
+        if (process.env.NODE_ENV !== 'production') {
+          console.error('Email error details:', emailError);
+        }
+      }
+    };
+
+    // Send email asynchronously (don't await - don't block response)
+    sendEmailWithTimeout().catch(err => {
+      console.error('Email sending process error:', err.message);
+    });
 
     res.json({ 
       success: true, 

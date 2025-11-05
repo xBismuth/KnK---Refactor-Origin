@@ -35,6 +35,9 @@ const log = {
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Trust proxy for Railway/cloud environments (fixes rate limiting X-Forwarded-For error)
+app.set('trust proxy', true);
+
 // Create HTTP server and Socket.IO
 const server = http.createServer(app);
 const io = socketIo(server, {

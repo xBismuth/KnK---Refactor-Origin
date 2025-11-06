@@ -68,7 +68,7 @@ exports.createPaymentIntent = async (req, res) => {
     // Construct return URL dynamically based on request origin
     const protocol = req.protocol || 'http';
     const host = req.get('host') || 'localhost:3000';
-    const returnUrl = `${protocol}://${host}/index.html`;
+    const returnUrl = `${protocol}://${host}/orders.html`;
 
     const attachResult = await payMongoRequest(`/payment_intents/${piId}/attach`, 'POST', {
       data: {
@@ -134,8 +134,8 @@ exports.createGCashPayment = async (req, res) => {
     // Construct redirect URLs dynamically based on request origin
     const protocol = req.protocol || 'http';
     const host = req.get('host') || 'localhost:3000';
-    const successUrl = `${protocol}://${host}/index.html?payment=success`;
-    const failedUrl = `${protocol}://${host}/index.html?payment=failed`;
+    const successUrl = `${protocol}://${host}/orders.html?payment=success`;
+    const failedUrl = `${protocol}://${host}/orders.html?payment=failed`;
 
     const result = await payMongoRequest('/sources', 'POST', {
       data: {

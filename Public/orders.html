@@ -1836,6 +1836,128 @@ function stopSilentRefresh() {
 }
 
 // ============================================
+// PAYMENT RETURN HANDLER
+// ============================================
+/**
+ * Handle payment return from PayMongo 3DS redirect or GCash
+ * PayMongo redirects back with payment_intent and payment_intent_client_secret (card) or payment=success/failed (GCash)
+ */
+async function handlePaymentReturn() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const paymentIntent = urlParams.get('payment_intent');
+  const paymentIntentClientSecret = urlParams.get('payment_intent_client_secret');
+  const paymentStatus = urlParams.get('payment'); // GCash returns: 'success' or 'failed'
+  
+  // Handle card payment return (3DS)
+  if (paymentIntent || paymentIntentClientSecret) {
+    console.log('💰 Card payment return detected:', { paymentIntent, paymentIntentClientSecret });
+    
+    // Check if there's pending order data from cart.html
+    const pendingOrderData = sessionStorage.getItem('pendingOrderData');
+    const pendingPaymentIntentId = sessionStorage.getItem('pendingPaymentIntentId');
+    
+    if (pendingOrderData && pendingPaymentIntentId) {
+      try {
+        // Get auth token
+        const token = getAuthToken();
+        
+        if (!token) {
+          throw new Error('No authentication token found');
+        }
+        
+        const API_URL = window.location.hostname === 'localhost' 
+          ? 'http://localhost:3000/api' 
+          : '/api';
+        
+        // Parse order data
+        const orderData = JSON.parse(pendingOrderData);
+        
+        // Verify payment intent matches
+        if (orderData.payment_intent_id !== pendingPaymentIntentId) {
+          console.warn('⚠️ Payment intent ID mismatch');
+        }
+        
+        // Update payment status based on return
+        orderData.payment_status = 'paid';
+        
+        // Create the order
+        const orderResponse = await fetch(`${API_URL}/create-order`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify(orderData)
+        });
+        
+        const result = await orderResponse.json();
+        
+        if (!orderResponse.ok || !result.success) {
+          throw new Error(result.message || 'Failed to create order');
+        }
+        
+        console.log('✅ Order created after payment:', result.order_id);
+        
+        // Clear pending data
+        sessionStorage.removeItem('pendingOrderData');
+        sessionStorage.removeItem('pendingPaymentIntentId');
+        
+        // Show success message
+        showToast('✅ Payment successful! Order created.', 'success');
+        
+        // Clean up URL parameters
+        window.history.replaceState({}, document.title, window.location.pathname);
+        
+        // Reload orders to show the new order
+        await loadOrders(true);
+        
+      } catch (error) {
+        console.error('❌ Error completing order after payment:', error);
+        showToast('Payment completed but error creating order. Please contact support.', 'error');
+        
+        // Clean up URL parameters
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+    } else {
+      // No pending order, just show success and reload orders
+      showToast('✅ Payment authorization completed!', 'success');
+      
+      // Clean up URL parameters
+      window.history.replaceState({}, document.title, window.location.pathname);
+      
+      // Reload orders
+      await loadOrders(true);
+    }
+  }
+  // Handle GCash payment return
+  else if (paymentStatus === 'success' || paymentStatus === 'failed') {
+    console.log('💰 GCash payment return detected:', paymentStatus);
+    
+    // Check for pending GCash order
+    const pendingGCashOrder = sessionStorage.getItem('pendingGCashOrder');
+    
+    if (paymentStatus === 'success') {
+      if (pendingGCashOrder) {
+        showToast('✅ GCash payment successful! Order status updated.', 'success');
+      } else {
+        showToast('✅ GCash payment successful!', 'success');
+      }
+      // Reload orders to show updated status
+      await loadOrders(true);
+    } else {
+      showToast('❌ GCash payment failed. Please try again.', 'error');
+      setTimeout(() => {
+        window.location.href = 'cart.html';
+      }, 3000);
+    }
+    
+    // Clean up
+    sessionStorage.removeItem('pendingGCashOrder');
+    window.history.replaceState({}, document.title, window.location.pathname);
+  }
+}
+
+// ============================================
 // PAGE INITIALIZATION
 // ============================================
 document.addEventListener('DOMContentLoaded', async () => {
@@ -1845,6 +1967,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     redirectToLogin();
     return;
   }
+
+  // Handle payment return first (must be before loadOrders)
+  await handlePaymentReturn();
 
   updateUIForUser();
   loadCartCount();

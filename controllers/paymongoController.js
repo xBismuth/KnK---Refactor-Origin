@@ -65,11 +65,16 @@ exports.createPaymentIntent = async (req, res) => {
 
     const piId = piResult.data.data.id;
 
+    // Construct return URL dynamically based on request origin
+    const protocol = req.protocol || 'http';
+    const host = req.get('host') || 'localhost:3000';
+    const returnUrl = `${protocol}://${host}/index.html`;
+
     const attachResult = await payMongoRequest(`/payment_intents/${piId}/attach`, 'POST', {
       data: {
         attributes: {
           payment_method: pmId,
-          return_url: 'http://localhost:3000/dashboard.html'
+          return_url: returnUrl
         }
       }
     });

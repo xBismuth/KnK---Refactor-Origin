@@ -1571,11 +1571,7 @@ async function processCardPayment(token) {
 
     const intentData = await intentResponse.json();
     
-    if (intentData.status === 'requires_action') {
-      window.location.href = intentData.nextAction.redirect.url;
-      return;
-    }
-
+    // Prepare order data
     const orderData = {
       customer_name: name,
       customer_email: email,
@@ -1595,6 +1591,19 @@ async function processCardPayment(token) {
       voucher_discount: voucherDiscount
     };
 
+    // If payment requires 3DS action, save order data and redirect
+    if (intentData.status === 'requires_action') {
+      // Save order data to sessionStorage for completion after 3DS
+      sessionStorage.setItem('pendingOrderData', JSON.stringify(orderData));
+      sessionStorage.setItem('pendingPaymentIntentId', intentData.paymentIntentId);
+      console.log('💳 Saving order data before 3DS redirect...');
+      
+      // Redirect to PayMongo 3DS page
+      window.location.href = intentData.nextAction.redirect.url;
+      return;
+    }
+
+    // If payment succeeded immediately, create order
     const result = await createOrder(token, orderData);
     
     if (appliedVoucher) {

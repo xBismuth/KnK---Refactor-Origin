@@ -650,15 +650,33 @@ function toggleMobileMenu() {
 function logout() {
   if (!confirm('Are you sure you want to logout?')) return;
   
+  // Capture current user's cart key BEFORE clearing user data
+  let userCartKey = null;
+  try {
+    const userStr = localStorage.getItem('currentUser');
+    if (userStr && userStr !== 'null' && userStr !== 'undefined') {
+      const user = JSON.parse(userStr);
+      if (user && user.email) {
+        userCartKey = `kusinaCart_${user.email}`;
+      }
+    }
+  } catch (e) {}
+
+  // Clear auth/session
   localStorage.removeItem('currentUser');
   localStorage.removeItem('authToken');
   sessionStorage.removeItem('authToken');
   localStorage.removeItem('adminToken');
-  
-  const cartKey = getCartKey();
-  localStorage.removeItem(cartKey);
-  
-  console.log('👋 User logged out');
+
+  // Remove both the user-specific cart and guest cart
+  if (userCartKey) localStorage.removeItem(userCartKey);
+  localStorage.removeItem('kusinaCart_guest');
+
+  // Reset in-memory cart and UI counts immediately
+  cart = [];
+  updateCartCounts();
+
+  console.log('👋 User logged out and carts cleared');
   window.location.href = 'login.html';
 }
 

@@ -131,6 +131,12 @@ exports.createGCashPayment = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Missing required payment data' });
     }
 
+    // Construct redirect URLs dynamically based on request origin
+    const protocol = req.protocol || 'http';
+    const host = req.get('host') || 'localhost:3000';
+    const successUrl = `${protocol}://${host}/index.html?payment=success`;
+    const failedUrl = `${protocol}://${host}/index.html?payment=failed`;
+
     const result = await payMongoRequest('/sources', 'POST', {
       data: {
         attributes: {
@@ -138,8 +144,8 @@ exports.createGCashPayment = async (req, res) => {
           amount: amount,
           currency: currency,
           redirect: {
-            success: 'http://localhost:3000/index.html?payment=success',
-            failed: 'http://localhost:3000/index.html?payment=failed'
+            success: successUrl,
+            failed: failedUrl
           },
           billing: {
             name: customer.name,

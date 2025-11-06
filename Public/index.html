@@ -1266,9 +1266,11 @@ async function handlePaymentReturn() {
   const urlParams = new URLSearchParams(window.location.search);
   const paymentIntent = urlParams.get('payment_intent');
   const paymentIntentClientSecret = urlParams.get('payment_intent_client_secret');
+  const paymentStatus = urlParams.get('payment'); // GCash returns: 'success' or 'failed'
   
+  // Handle card payment return (3DS)
   if (paymentIntent || paymentIntentClientSecret) {
-    console.log('💰 Payment return detected:', { paymentIntent, paymentIntentClientSecret });
+    console.log('💰 Card payment return detected:', { paymentIntent, paymentIntentClientSecret });
     
     // Check if there's pending order data from cart.html
     const pendingOrderData = sessionStorage.getItem('pendingOrderData');
@@ -1352,6 +1354,37 @@ async function handlePaymentReturn() {
         window.location.href = 'orders.html';
       }, 2000);
     }
+  }
+  // Handle GCash payment return
+  else if (paymentStatus === 'success' || paymentStatus === 'failed') {
+    console.log('💰 GCash payment return detected:', paymentStatus);
+    
+    // Check for pending GCash order
+    const pendingGCashOrder = sessionStorage.getItem('pendingGCashOrder');
+    
+    if (paymentStatus === 'success') {
+      if (pendingGCashOrder) {
+        showToast('✅ GCash payment successful! Checking order status...', 'success');
+        // Order should already be created, just verify it
+        setTimeout(() => {
+          window.location.href = 'orders.html';
+        }, 2000);
+      } else {
+        showToast('✅ GCash payment successful!', 'success');
+        setTimeout(() => {
+          window.location.href = 'orders.html';
+        }, 2000);
+      }
+    } else {
+      showToast('❌ GCash payment failed. Please try again.', 'error');
+      setTimeout(() => {
+        window.location.href = 'cart.html';
+      }, 3000);
+    }
+    
+    // Clean up
+    sessionStorage.removeItem('pendingGCashOrder');
+    window.history.replaceState({}, document.title, window.location.pathname);
   }
 }
 

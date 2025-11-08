@@ -440,6 +440,25 @@
     
   </div>
 
+  <!-- STORE HOURS CARD -->
+  <div class="card mb-8">
+    <div class="flex justify-between items-center mb-4">
+      <div>
+        <h3 class="text-lg font-bold text-gray-900">Store Hours</h3>
+        <p class="text-sm text-gray-500 mt-1">Manage your restaurant's opening hours</p>
+      </div>
+      <button onclick="openStoreHoursModal()" class="btn btn-primary">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+        </svg>
+        Edit Hours
+      </button>
+    </div>
+    <div id="store-hours-display" class="space-y-2">
+      <div class="skeleton h-20"></div>
+    </div>
+  </div>
+
   <!-- CHARTS ROW -->
   <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
     
@@ -601,6 +620,29 @@
     <div class="flex gap-3">
       <button onclick="closeDeliveryStatusModal()" class="flex-1 btn btn-secondary">Cancel</button>
       <button onclick="updateDeliveryStatus()" class="flex-1 btn btn-primary">Update Status</button>
+    </div>
+  </div>
+</div>
+
+<!-- STORE HOURS MODAL -->
+<div id="store-hours-modal" class="modal-overlay hidden" onclick="closeStoreHoursModal(event)">
+  <div class="modal-content" style="max-width: 700px; max-height: 90vh;" onclick="event.stopPropagation()">
+    <div class="flex justify-between items-center mb-6">
+      <h2 class="text-2xl font-bold text-gray-900">Edit Store Hours</h2>
+      <button onclick="closeStoreHoursModal()" class="text-gray-400 hover:text-gray-600">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+        </svg>
+      </button>
+    </div>
+    
+    <div id="store-hours-form" class="space-y-4">
+      <!-- Store hours will be dynamically generated here -->
+    </div>
+    
+    <div class="flex gap-3 mt-6">
+      <button onclick="closeStoreHoursModal()" class="flex-1 btn btn-secondary">Cancel</button>
+      <button onclick="saveStoreHours()" class="flex-1 btn btn-primary">Save Hours</button>
     </div>
   </div>
 </div>
@@ -769,7 +811,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   await Promise.all([
     loadAdminInfo(),
     loadOrders(),
-    loadStats()
+    loadStats(),
+    loadStoreHours()
   ]);
   
   // Initialize charts
@@ -1559,6 +1602,269 @@ function exportOrders() {
   } catch (e) {
     console.error('❌ Export error:', e);
     showToast('Failed to export orders', 'error');
+  }
+}
+
+// ==================== STORE HOURS ====================
+
+let storeHours = [];
+
+/**
+ * Load store hours from API
+ */
+async function loadStoreHours() {
+  try {
+    console.log('🕐 Loading store hours...');
+    
+    // Use public endpoint (no auth required)
+    const response = await fetch(`${API_URL}/store-hours`);
+    const data = await response.json();
+    
+    if (data.success && data.hours) {
+      storeHours = data.hours;
+      displayStoreHours();
+      console.log('✅ Store hours loaded:', storeHours);
+    } else {
+      console.error('Failed to load store hours:', data.message);
+      showStoreHoursError();
+    }
+  } catch (e) {
+    console.error('❌ Load store hours error:', e);
+    showStoreHoursError();
+  }
+}
+
+/**
+ * Display store hours in the card
+ */
+function displayStoreHours() {
+  const displayEl = document.getElementById('store-hours-display');
+  if (!displayEl) return;
+  
+  if (storeHours.length === 0) {
+    displayEl.innerHTML = '<p class="text-gray-500 text-sm">No store hours configured</p>';
+    return;
+  }
+  
+  const hoursHTML = storeHours.map(hour => {
+    const isOpen = hour.is_open === 1 || hour.is_open === true;
+    const openTime = hour.open_time ? formatTime(hour.open_time) : 'Closed';
+    const closeTime = hour.close_time ? formatTime(hour.close_time) : '';
+    const timeDisplay = isOpen ? `${openTime} - ${closeTime}` : 'Closed';
+    const statusClass = isOpen ? 'text-green-600' : 'text-gray-400';
+    
+    return `
+      <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+        <span class="font-medium text-gray-700">${hour.day_name}</span>
+        <span class="${statusClass} font-semibold">${timeDisplay}</span>
+      </div>
+    `;
+  }).join('');
+  
+  displayEl.innerHTML = hoursHTML;
+}
+
+/**
+ * Format time from HH:MM:SS to HH:MM AM/PM
+ */
+function formatTime(timeString) {
+  if (!timeString) return '';
+  const [hours, minutes] = timeString.split(':');
+  const hour = parseInt(hours);
+  const ampm = hour >= 12 ? 'PM' : 'AM';
+  const displayHour = hour % 12 || 12;
+  return `${displayHour}:${minutes} ${ampm}`;
+}
+
+/**
+ * Show error state for store hours
+ */
+function showStoreHoursError() {
+  const displayEl = document.getElementById('store-hours-display');
+  if (displayEl) {
+    displayEl.innerHTML = '<p class="text-red-500 text-sm">Failed to load store hours</p>';
+  }
+}
+
+/**
+ * Open store hours modal
+ */
+function openStoreHoursModal() {
+  console.log('🕐 Opening store hours modal...');
+  
+  const modal = document.getElementById('store-hours-modal');
+  const formEl = document.getElementById('store-hours-form');
+  
+  if (!modal || !formEl) {
+    console.error('Modal elements not found');
+    return;
+  }
+  
+  modal.classList.remove('hidden');
+  renderStoreHoursForm();
+}
+
+/**
+ * Close store hours modal
+ */
+function closeStoreHoursModal(event) {
+  const modal = document.getElementById('store-hours-modal');
+  if (!modal) return;
+  
+  if (!event || event.target === event.currentTarget) {
+    modal.classList.add('hidden');
+  }
+}
+
+/**
+ * Render store hours form in modal
+ */
+function renderStoreHoursForm() {
+  const formEl = document.getElementById('store-hours-form');
+  if (!formEl) return;
+  
+  if (storeHours.length === 0) {
+    // Use default hours if none exist
+    storeHours = [
+      { day_of_week: 0, day_name: 'Sunday', is_open: false, open_time: null, close_time: null },
+      { day_of_week: 1, day_name: 'Monday', is_open: true, open_time: '11:00:00', close_time: '15:00:00' },
+      { day_of_week: 2, day_name: 'Tuesday', is_open: true, open_time: '11:00:00', close_time: '15:00:00' },
+      { day_of_week: 3, day_name: 'Wednesday', is_open: true, open_time: '11:00:00', close_time: '15:00:00' },
+      { day_of_week: 4, day_name: 'Thursday', is_open: true, open_time: '11:00:00', close_time: '15:00:00' },
+      { day_of_week: 5, day_name: 'Friday', is_open: true, open_time: '11:00:00', close_time: '15:00:00' },
+      { day_of_week: 6, day_name: 'Saturday', is_open: true, open_time: '11:00:00', close_time: '15:00:00' }
+    ];
+  }
+  
+  const formHTML = storeHours.map(hour => {
+    const isOpen = hour.is_open === 1 || hour.is_open === true;
+    const openTime = hour.open_time ? hour.open_time.substring(0, 5) : '11:00';
+    const closeTime = hour.close_time ? hour.close_time.substring(0, 5) : '15:00';
+    
+    return `
+      <div class="flex items-center gap-4 p-4 border-2 rounded-xl ${isOpen ? 'border-green-200 bg-green-50' : 'border-gray-200 bg-gray-50'}">
+        <div class="flex-1">
+          <label class="flex items-center gap-3 cursor-pointer">
+            <input 
+              type="checkbox" 
+              class="w-5 h-5 text-[#cda45e] rounded focus:ring-[#cda45e]"
+              ${isOpen ? 'checked' : ''}
+              onchange="toggleDayOpen(${hour.day_of_week}, this.checked)"
+            >
+            <span class="font-semibold text-gray-900">${hour.day_name}</span>
+          </label>
+        </div>
+        <div class="flex items-center gap-2" id="time-inputs-${hour.day_of_week}">
+          <input 
+            type="time" 
+            value="${openTime}"
+            class="px-3 py-2 border-2 rounded-lg text-sm focus:border-[#cda45e] focus:outline-none ${!isOpen ? 'opacity-50 cursor-not-allowed' : ''}"
+            ${!isOpen ? 'disabled' : ''}
+            onchange="updateStoreHour(${hour.day_of_week}, 'open_time', this.value)"
+          >
+          <span class="text-gray-500">-</span>
+          <input 
+            type="time" 
+            value="${closeTime}"
+            class="px-3 py-2 border-2 rounded-lg text-sm focus:border-[#cda45e] focus:outline-none ${!isOpen ? 'opacity-50 cursor-not-allowed' : ''}"
+            ${!isOpen ? 'disabled' : ''}
+            onchange="updateStoreHour(${hour.day_of_week}, 'close_time', this.value)"
+          >
+        </div>
+      </div>
+    `;
+  }).join('');
+  
+  formEl.innerHTML = formHTML;
+}
+
+/**
+ * Toggle day open/closed
+ */
+function toggleDayOpen(dayOfWeek, isOpen) {
+  const hour = storeHours.find(h => h.day_of_week === dayOfWeek);
+  if (hour) {
+    hour.is_open = isOpen;
+    
+    // Enable/disable time inputs
+    const timeInputs = document.getElementById(`time-inputs-${dayOfWeek}`);
+    if (timeInputs) {
+      const inputs = timeInputs.querySelectorAll('input[type="time"]');
+      inputs.forEach(input => {
+        input.disabled = !isOpen;
+        input.classList.toggle('opacity-50', !isOpen);
+        input.classList.toggle('cursor-not-allowed', !isOpen);
+      });
+      
+      // Update container styling
+      const container = timeInputs.closest('.border-2');
+      if (container) {
+        if (isOpen) {
+          container.classList.remove('border-gray-200', 'bg-gray-50');
+          container.classList.add('border-green-200', 'bg-green-50');
+        } else {
+          container.classList.remove('border-green-200', 'bg-green-50');
+          container.classList.add('border-gray-200', 'bg-gray-50');
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Update store hour time
+ */
+function updateStoreHour(dayOfWeek, field, value) {
+  const hour = storeHours.find(h => h.day_of_week === dayOfWeek);
+  if (hour) {
+    hour[field] = value ? value + ':00' : null;
+  }
+}
+
+/**
+ * Save store hours
+ */
+async function saveStoreHours() {
+  try {
+    console.log('💾 Saving store hours...');
+    
+    // Validate hours
+    for (const hour of storeHours) {
+      if (hour.is_open) {
+        if (!hour.open_time || !hour.close_time) {
+          showToast('Please set both open and close times for open days', 'error');
+          return;
+        }
+      }
+    }
+    
+    // Prepare data for API
+    const hoursData = storeHours.map(hour => ({
+      day_of_week: hour.day_of_week,
+      day_name: hour.day_name,
+      is_open: hour.is_open === 1 || hour.is_open === true,
+      open_time: hour.is_open ? hour.open_time : null,
+      close_time: hour.is_open ? hour.close_time : null
+    }));
+    
+    // Send to API
+    const data = await apiFetch('/admin/store-hours', {
+      method: 'PUT',
+      body: JSON.stringify({ hours: hoursData })
+    });
+    
+    if (data.success) {
+      showToast('Store hours updated successfully', 'success');
+      closeStoreHoursModal();
+      
+      // Reload store hours to refresh display
+      await loadStoreHours();
+    } else {
+      showToast(data.message || 'Failed to update store hours', 'error');
+    }
+  } catch (e) {
+    console.error('❌ Save store hours error:', e);
+    showToast(e.message || 'Failed to save store hours', 'error');
   }
 }
 

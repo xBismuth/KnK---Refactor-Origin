@@ -20,6 +20,7 @@ const menuRoutes = require('./routes/menuRoutes');
 const userRoutes = require('./routes/userRoutes');
 const supportRoutes = require('./routes/supportRoutes');
 const paymongoRoutes = require('./routes/paymongoRoutes');
+const settingsRoutes = require('./routes/settingsRoutes');
 
 // Import socket handlers
 const initializeOrderSockets = require('./sockets/orderSockets');
@@ -88,6 +89,7 @@ app.use('/api', menuRoutes);
 app.use('/api', userRoutes);
 app.use('/api', supportRoutes);
 app.use('/api', paymongoRoutes);
+app.use('/api', settingsRoutes);
 
 // ==================== SOCKET.IO ====================
 initializeOrderSockets(io, db);

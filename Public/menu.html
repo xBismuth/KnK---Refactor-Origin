@@ -505,12 +505,89 @@ let allMenuItems = [];
 let menuCart = [];
 
 // ==================== STORE HOURS ====================
+let storeHours = [];
+
+/**
+ * Load store hours from API
+ */
+async function loadStoreHours() {
+  try {
+    const API_URL = window.location.hostname === 'localhost' 
+      ? 'http://localhost:3000/api' 
+      : '/api';
+    
+    const response = await fetch(`${API_URL}/store-hours`);
+    const data = await response.json();
+    
+    if (data.success && data.hours) {
+      storeHours = data.hours;
+      console.log('✅ Store hours loaded:', storeHours);
+    } else {
+      console.warn('⚠️ Failed to load store hours, using default');
+      // Fallback to default hours
+      storeHours = [
+        { day_of_week: 0, day_name: 'Sunday', is_open: false, open_time: null, close_time: null },
+        { day_of_week: 1, day_name: 'Monday', is_open: true, open_time: '11:00:00', close_time: '15:00:00' },
+        { day_of_week: 2, day_name: 'Tuesday', is_open: true, open_time: '11:00:00', close_time: '15:00:00' },
+        { day_of_week: 3, day_name: 'Wednesday', is_open: true, open_time: '11:00:00', close_time: '15:00:00' },
+        { day_of_week: 4, day_name: 'Thursday', is_open: true, open_time: '11:00:00', close_time: '15:00:00' },
+        { day_of_week: 5, day_name: 'Friday', is_open: true, open_time: '11:00:00', close_time: '15:00:00' },
+        { day_of_week: 6, day_name: 'Saturday', is_open: true, open_time: '11:00:00', close_time: '15:00:00' }
+      ];
+    }
+  } catch (error) {
+    console.error('❌ Error loading store hours:', error);
+    // Fallback to default hours
+    storeHours = [
+      { day_of_week: 0, day_name: 'Sunday', is_open: false, open_time: null, close_time: null },
+      { day_of_week: 1, day_name: 'Monday', is_open: true, open_time: '11:00:00', close_time: '15:00:00' },
+      { day_of_week: 2, day_name: 'Tuesday', is_open: true, open_time: '11:00:00', close_time: '15:00:00' },
+      { day_of_week: 3, day_name: 'Wednesday', is_open: true, open_time: '11:00:00', close_time: '15:00:00' },
+      { day_of_week: 4, day_name: 'Thursday', is_open: true, open_time: '11:00:00', close_time: '15:00:00' },
+      { day_of_week: 5, day_name: 'Friday', is_open: true, open_time: '11:00:00', close_time: '15:00:00' },
+      { day_of_week: 6, day_name: 'Saturday', is_open: true, open_time: '11:00:00', close_time: '15:00:00' }
+    ];
+  }
+}
+
+/**
+ * Check if store is currently open based on store hours from API
+ */
 function isStoreOpen() {
+  if (storeHours.length === 0) {
+    // If hours not loaded yet, use fallback
+    const now = new Date();
+    const hours = now.getHours();
+    const day = now.getDay();
+    return day >= 1 && day <= 6 && hours >= 11 && hours < 15;
+  }
+  
   const now = new Date();
-  const hours = now.getHours();
-  const day = now.getDay();
-  // Open Monday (1) to Saturday (6), 11:00 - 15:00
-  return day >= 1 && day <= 6 && hours >= 11 && hours < 15;
+  const currentDay = now.getDay(); // 0 = Sunday, 1 = Monday, etc.
+  const currentHour = now.getHours();
+  const currentMinute = now.getMinutes();
+  const currentTime = currentHour * 60 + currentMinute; // Convert to minutes for easier comparison
+  
+  // Find today's hours
+  const todayHours = storeHours.find(h => h.day_of_week === currentDay);
+  
+  if (!todayHours || !todayHours.is_open) {
+    return false; // Store is closed today
+  }
+  
+  // Parse open and close times
+  if (!todayHours.open_time || !todayHours.close_time) {
+    return false; // No times set
+  }
+  
+  const [openHour, openMin = 0] = todayHours.open_time.split(':').map(Number);
+  const [closeHour, closeMin = 0] = todayHours.close_time.split(':').map(Number);
+  
+  const openTime = openHour * 60 + (openMin || 0);
+  const closeTime = closeHour * 60 + (closeMin || 0);
+  
+  // Check if current time is within open hours
+  return currentTime >= openTime && currentTime < closeTime;
 }
 
 // ==================== TOAST NOTIFICATIONS ====================
@@ -986,6 +1063,9 @@ function escapeJs(str) {
 // ==================== INITIALIZATION ====================
 document.addEventListener('DOMContentLoaded', function() {
   console.log('🚀 Menu page initializing...');
+  
+  // Load store hours first (needed for isStoreOpen checks)
+  loadStoreHours();
   
   checkLoginStatus();
   loadCart();

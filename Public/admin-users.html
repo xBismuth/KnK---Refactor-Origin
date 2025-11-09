@@ -247,14 +247,17 @@
           <div class="text-xs text-gray-500 hidden sm:block">Kusina ni Katya</div>
         </div>
       </div>
-      <div class="flex items-center gap-2 sm:gap-3">
-        <a href="dashboard.html" class="hidden sm:inline-flex px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium text-gray-600 hover:text-[#cda45e] rounded-lg hover:bg-gray-50 transition">Dashboard</a>
-        <a href="admin-menu.html" class="hidden sm:inline-flex px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium text-gray-600 hover:text-[#cda45e] rounded-lg hover:bg-gray-50 transition">Menu</a>
+      <div class="flex items-center gap-2 sm:gap-3 flex-wrap">
+        <a href="admin-menu.html" class="hidden sm:inline-flex px-3 py-2 text-sm font-medium text-gray-600 hover:text-[#cda45e] rounded-lg hover:bg-gray-50 transition">Menu</a>
+        <a href="admin-users.html" class="hidden sm:inline-flex px-3 py-2 text-sm font-medium text-gray-600 hover:text-[#cda45e] rounded-lg hover:bg-gray-50 transition">Users</a>
+        <a href="admin-customer-support.html" class="hidden lg:inline-flex px-3 py-2 text-sm font-medium text-gray-600 hover:text-[#cda45e] rounded-lg hover:bg-gray-50 transition">Support</a>
+        
         <button onclick="toggleMobileMenu()" class="sm:hidden p-2 rounded-lg hover:bg-gray-100">
           <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
           </svg>
         </button>
+        
         <div class="hidden sm:flex border-l pl-2 sm:pl-3 ml-2 sm:ml-3 items-center gap-2">
           <div class="text-xs sm:text-sm font-semibold" id="user-name">Admin</div>
           <button onclick="logout()" class="px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg transition">Logout</button>
@@ -264,8 +267,9 @@
     <!-- Mobile Menu -->
     <div id="mobile-menu" class="hidden sm:hidden pb-4 border-t mt-2 pt-4">
       <div class="flex flex-col space-y-2">
-        <a href="dashboard.html" class="px-4 py-2 text-sm font-medium text-gray-600 hover:text-[#cda45e] rounded-lg hover:bg-gray-50 transition">Dashboard</a>
         <a href="admin-menu.html" class="px-4 py-2 text-sm font-medium text-gray-600 hover:text-[#cda45e] rounded-lg hover:bg-gray-50 transition">Menu</a>
+        <a href="admin-users.html" class="px-4 py-2 text-sm font-medium text-gray-600 hover:text-[#cda45e] rounded-lg hover:bg-gray-50 transition">Users</a>
+        <a href="admin-customer-support.html" class="px-4 py-2 text-sm font-medium text-gray-600 hover:text-[#cda45e] rounded-lg hover:bg-gray-50 transition">Support</a>
         <div class="flex items-center justify-between pt-2 border-t">
           <div class="text-sm font-semibold" id="mobile-user-name">Admin</div>
           <button onclick="logout()" class="px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg transition">Logout</button>

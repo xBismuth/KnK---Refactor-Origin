@@ -248,7 +248,12 @@ exports.deleteMenuItem = async (req, res) => {
 // Upload menu image (Admin)
 exports.uploadMenuImage = async (req, res) => {
   try {
+    console.log('📤 Upload request received');
+    console.log('📁 File:', req.file ? req.file.filename : 'No file');
+    console.log('📝 Body:', req.body);
+    
     if (!req.file) {
+      console.error('❌ No file in request');
       return res.status(400).json({ 
         success: false, 
         message: 'No image file provided' 
@@ -256,6 +261,7 @@ exports.uploadMenuImage = async (req, res) => {
     }
 
     const imageUrl = `/assets/images/menu/${req.file.filename}`;
+    console.log('✅ Image uploaded successfully:', imageUrl);
 
     res.json({ 
       success: true, 

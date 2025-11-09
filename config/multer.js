@@ -3,7 +3,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 
-const uploadsDir = path.join(__dirname, '../public/assets/images/menu');
+const uploadsDir = path.join(__dirname, '../Public/assets/images/menu');
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
   console.log('✅ Created menu uploads directory:', uploadsDir);

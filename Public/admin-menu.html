@@ -583,19 +583,26 @@ async function handleImageUpload(event) {
     
     const data = await response.json();
     
+    if (!response.ok) {
+      throw new Error(data.message || `Upload failed: ${response.status} ${response.statusText}`);
+    }
+    
     if (data.success) {
       document.getElementById('image-url').value = data.imageUrl;
       preview.innerHTML = `<img src="${data.imageUrl}" alt="Preview">`;
-      showToast('Image uploaded', 'success');
+      showToast('Image uploaded successfully', 'success');
     } else {
       throw new Error(data.message || 'Upload failed');
     }
     
   } catch (error) {
     console.error('❌ Image upload error:', error);
-    showToast('Upload failed', 'error');
+    const errorMessage = error.message || 'Upload failed. Please try again.';
+    showToast(errorMessage, 'error');
     preview.innerHTML = '<span class="text-xs text-gray-400">Click to upload</span>';
     document.getElementById('image-url').value = '';
+    // Reset file input
+    document.getElementById('image-input').value = '';
   }
 }
 

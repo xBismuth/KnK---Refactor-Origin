@@ -64,13 +64,26 @@ exports.createMenuItem = async (req, res) => {
     
     const io = req.app.get('socketio');
 
-    if (!name || !price) {
+    if (!name || price === undefined || price === null || price === '') {
       console.error('❌ Validation failed: Name or price missing');
       return res.status(400).json({ 
         success: false, 
         message: 'Name and price are required' 
       });
     }
+
+    // Validate and sanitize price
+    const priceNum = parseFloat(price);
+    if (isNaN(priceNum) || !isFinite(priceNum) || priceNum < 0) {
+      console.error('❌ Validation failed: Invalid price value', price);
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Price must be a valid positive number' 
+      });
+    }
+
+    // Round to 2 decimal places to match typical DECIMAL(10,2) column
+    const sanitizedPrice = Math.round(priceNum * 100) / 100;
 
     const slug = name.toLowerCase()
       .replace(/[^\w\s-]/g, '')
@@ -79,6 +92,7 @@ exports.createMenuItem = async (req, res) => {
       .trim();
 
     console.log('💾 Inserting menu item into database...');
+    console.log('💰 Sanitized price:', sanitizedPrice);
     const [result] = await db.query(
       `INSERT INTO menu_items 
        (name, slug, description, price, image_url, category, badge, is_featured, is_active, created_at, updated_at) 
@@ -87,7 +101,7 @@ exports.createMenuItem = async (req, res) => {
         name,
         slug,
         description || null,
-        parseFloat(price),
+        sanitizedPrice,
         image_url || null,
         category || 'main',
         badge || null,
@@ -161,8 +175,18 @@ exports.updateMenuItem = async (req, res) => {
             .trim();
           values.push(slug);
         } else if (field === 'price') {
+          // Validate and sanitize price
+          const priceNum = parseFloat(req.body[field]);
+          if (isNaN(priceNum) || !isFinite(priceNum) || priceNum < 0) {
+            return res.status(400).json({ 
+              success: false, 
+              message: 'Price must be a valid positive number' 
+            });
+          }
+          // Round to 2 decimal places to match typical DECIMAL(10,2) column
+          const sanitizedPrice = Math.round(priceNum * 100) / 100;
           updates.push('price = ?');
-          values.push(parseFloat(req.body[field]));
+          values.push(sanitizedPrice);
         } else if (field === 'is_featured' || field === 'is_active') {
           updates.push(`${field} = ?`);
           values.push(req.body[field] ? 1 : 0);

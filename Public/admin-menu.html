@@ -447,6 +447,7 @@ async function loadMenuItems() {
     const data = await res.json();
     allItems = data.items || [];
     console.log('✅ Loaded', allItems.length, 'menu items');
+    console.log('📸 Sample item image URLs:', allItems.slice(0, 3).map(item => ({ id: item.id, name: item.name, image_url: item.image_url })));
     renderMenuItems();
     
   } catch(e) {
@@ -477,9 +478,24 @@ function renderMenuItems() {
   filtered.forEach(item => {
     const card = document.createElement('div');
     card.className = 'card';
+    
+    // Ensure image URL has proper path format
+    let imageUrl = item.image_url || null;
+    // If image_url doesn't start with /, add it for consistency
+    if (imageUrl && !imageUrl.startsWith('/') && !imageUrl.startsWith('http')) {
+      imageUrl = '/' + imageUrl;
+    }
+    
+    // Create image element with proper error handling
+    // Use a simple gray placeholder if no image
+    const imgSrc = imageUrl || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iI2YzZjRmNiIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkeT0iLjNlbSIgZmlsbD0iIzljYTNhZiIgZm9udC1zaXplPSIxMiI+Tm8gSW1hZ2U8L3RleHQ+PC9zdmc+';
+    
     card.innerHTML = `
-      <img src="${item.image_url || 'assets/images/placeholder.jpg'}" alt="${item.name}" 
-           style="width: 100%; height: 160px; object-fit: cover; border-radius: 6px; margin-bottom: 12px;">
+      <div style="width: 100%; height: 160px; border-radius: 6px; margin-bottom: 12px; overflow: hidden; background: #f3f4f6; display: flex; align-items: center; justify-content: center;">
+        <img src="${imgSrc}" alt="${item.name}" 
+             style="width: 100%; height: 100%; object-fit: cover;"
+             onerror="console.error('❌ Image load error for item ${item.id}:', '${imageUrl || 'no-url'}'); this.style.display='none'; this.parentElement.innerHTML='<div style=\\'width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:#9ca3af;font-size:12px\\'>No Image</div>';">
+      </div>
       
       <div class="flex gap-1 mb-2 flex-wrap">
         ${item.is_featured ? '<span class="badge badge-featured">Featured</span>' : ''}
@@ -540,7 +556,12 @@ function editItem(id) {
   
   const preview = document.getElementById('image-preview');
   if (item.image_url) {
-    preview.innerHTML = `<img src="${item.image_url}" alt="${item.name}">`;
+    // Ensure image URL has proper path format
+    let imageUrl = item.image_url;
+    if (!imageUrl.startsWith('/') && !imageUrl.startsWith('http')) {
+      imageUrl = '/' + imageUrl;
+    }
+    preview.innerHTML = `<img src="${imageUrl}" alt="${item.name}" onerror="this.onerror=null; this.parentElement.innerHTML='<span class=\\'text-xs text-gray-400\\'>Image not found</span>';">`;
   } else {
     preview.innerHTML = '<span class="text-xs text-gray-400">Click to upload</span>';
   }
@@ -565,7 +586,7 @@ async function handleImageUpload(event) {
   
   const preview = document.getElementById('image-preview');
   const tempUrl = URL.createObjectURL(file);
-  preview.innerHTML = `<img src="${tempUrl}" alt="Preview">`;
+  preview.innerHTML = `<img src="${tempUrl}" alt="Preview" style="max-width: 100%; max-height: 100%; object-fit: cover;">`;
   
   showToast('Uploading...', 'info');
   
@@ -588,9 +609,15 @@ async function handleImageUpload(event) {
     }
     
     if (data.success) {
-      document.getElementById('image-url').value = data.imageUrl;
-      preview.innerHTML = `<img src="${data.imageUrl}" alt="Preview">`;
+      // Ensure imageUrl has leading slash for consistency
+      let imageUrl = data.imageUrl;
+      if (!imageUrl.startsWith('/') && !imageUrl.startsWith('http')) {
+        imageUrl = '/' + imageUrl;
+      }
+      document.getElementById('image-url').value = imageUrl;
+      preview.innerHTML = `<img src="${imageUrl}" alt="Preview" onerror="this.onerror=null; this.parentElement.innerHTML='<span class=\\'text-xs text-gray-400\\'>Image not found</span>';">`;
       showToast('Image uploaded successfully', 'success');
+      console.log('✅ Image URL saved:', imageUrl);
     } else {
       throw new Error(data.message || 'Upload failed');
     }
@@ -611,18 +638,22 @@ async function saveItem(event) {
   
   console.log('💾 Saving menu item...');
   
+  const imageUrlValue = document.getElementById('image-url').value;
+  console.log('📸 Image URL from hidden input:', imageUrlValue);
+  
   const itemData = {
     name: document.getElementById('item-name').value.trim(),
     description: document.getElementById('item-description').value.trim() || null,
     price: parseFloat(document.getElementById('item-price').value),
     category: document.getElementById('item-category').value,
     badge: document.getElementById('item-badge').value.trim() || null,
-    image_url: document.getElementById('image-url').value || null,
+    image_url: imageUrlValue || null,
     is_featured: document.getElementById('item-featured').checked,
     is_active: document.getElementById('item-active').checked
   };
   
   console.log('📦 Item data:', itemData);
+  console.log('📸 Image URL being sent:', itemData.image_url);
   
   if (!itemData.name || isNaN(itemData.price) || itemData.price <= 0) {
     showToast('Name and valid price required', 'error');

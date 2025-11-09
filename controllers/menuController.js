@@ -48,6 +48,9 @@ exports.getAllMenuItems = async (req, res) => {
 // Create menu item (Admin)
 exports.createMenuItem = async (req, res) => {
   try {
+    console.log('📝 Create menu item request received');
+    console.log('📦 Request body:', req.body);
+    
     const { 
       name, 
       description, 
@@ -58,9 +61,11 @@ exports.createMenuItem = async (req, res) => {
       is_featured, 
       is_active 
     } = req.body;
+    
     const io = req.app.get('socketio');
 
     if (!name || !price) {
+      console.error('❌ Validation failed: Name or price missing');
       return res.status(400).json({ 
         success: false, 
         message: 'Name and price are required' 
@@ -73,6 +78,7 @@ exports.createMenuItem = async (req, res) => {
       .replace(/-+/g, '-')
       .trim();
 
+    console.log('💾 Inserting menu item into database...');
     const [result] = await db.query(
       `INSERT INTO menu_items 
        (name, slug, description, price, image_url, category, badge, is_featured, is_active, created_at, updated_at) 
@@ -90,11 +96,18 @@ exports.createMenuItem = async (req, res) => {
       ]
     );
 
-    io.emit('menu-updated', { 
-      action: 'created', 
-      itemId: result.insertId,
-      item: { id: result.insertId, name, price, is_featured, is_active }
-    });
+    console.log('✅ Menu item created with ID:', result.insertId);
+
+    if (io) {
+      io.emit('menu-updated', { 
+        action: 'created', 
+        itemId: result.insertId,
+        item: { id: result.insertId, name, price, is_featured, is_active }
+      });
+      console.log('📢 Socket.IO event emitted');
+    } else {
+      console.warn('⚠️ Socket.IO not available');
+    }
 
     res.json({ 
       success: true, 
@@ -104,6 +117,12 @@ exports.createMenuItem = async (req, res) => {
 
   } catch (error) {
     console.error('❌ Create menu item error:', error);
+    console.error('❌ Error details:', {
+      message: error.message,
+      code: error.code,
+      sqlMessage: error.sqlMessage,
+      stack: error.stack
+    });
     
     if (error.code === 'ER_DUP_ENTRY') {
       return res.status(400).json({ 
@@ -114,7 +133,8 @@ exports.createMenuItem = async (req, res) => {
     
     res.status(500).json({ 
       success: false, 
-      message: 'Failed to create menu item' 
+      message: 'Failed to create menu item',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 };

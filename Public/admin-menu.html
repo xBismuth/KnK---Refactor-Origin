@@ -609,6 +609,8 @@ async function handleImageUpload(event) {
 async function saveItem(event) {
   event.preventDefault();
   
+  console.log('💾 Saving menu item...');
+  
   const itemData = {
     name: document.getElementById('item-name').value.trim(),
     description: document.getElementById('item-description').value.trim() || null,
@@ -620,8 +622,16 @@ async function saveItem(event) {
     is_active: document.getElementById('item-active').checked
   };
   
+  console.log('📦 Item data:', itemData);
+  
   if (!itemData.name || isNaN(itemData.price) || itemData.price <= 0) {
     showToast('Name and valid price required', 'error');
+    return;
+  }
+  
+  if (!token) {
+    showToast('Authentication required. Please login again.', 'error');
+    window.location.href = 'login.html';
     return;
   }
   
@@ -629,6 +639,8 @@ async function saveItem(event) {
     const isEdit = editingItemId !== null && editingItemId !== undefined;
     const url = isEdit ? `/api/admin/menu/${editingItemId}` : '/api/admin/menu';
     const method = isEdit ? 'PATCH' : 'POST';
+    
+    console.log(`📡 ${method} ${url}`);
     
     const res = await fetch(url, {
       method,
@@ -639,7 +651,37 @@ async function saveItem(event) {
       body: JSON.stringify(itemData)
     });
     
+    console.log('📥 Response status:', res.status, res.statusText);
+    
+    // Check if response is ok before parsing JSON
+    if (!res.ok) {
+      let errorMessage = `HTTP ${res.status}: ${res.statusText}`;
+      try {
+        const errorData = await res.json();
+        errorMessage = errorData.message || errorMessage;
+        console.error('❌ API Error:', errorData);
+      } catch (e) {
+        const errorText = await res.text();
+        console.error('❌ API Error (text):', errorText);
+        errorMessage = errorText || errorMessage;
+      }
+      
+      // Handle auth errors
+      if (res.status === 401 || res.status === 403) {
+        showToast('Session expired. Please login again.', 'error');
+        localStorage.removeItem('adminToken');
+        setTimeout(() => {
+          window.location.href = 'login.html';
+        }, 2000);
+        return;
+      }
+      
+      showToast(errorMessage, 'error');
+      return;
+    }
+    
     const data = await res.json();
+    console.log('✅ API Response:', data);
     
     if (data.success) {
       showToast(isEdit ? 'Item updated! 🎉' : 'Item added! 🎉', 'success');
@@ -651,7 +693,7 @@ async function saveItem(event) {
     }
   } catch(e) {
     console.error('❌ Save item error:', e);
-    showToast('Error: ' + e.message, 'error');
+    showToast('Error: ' + (e.message || 'Failed to save item. Please try again.'), 'error');
   }
 }
 

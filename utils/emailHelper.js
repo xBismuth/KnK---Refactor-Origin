@@ -1,5 +1,5 @@
 // ==================== EMAIL HELPER FUNCTIONS ====================
-const { emailTransporter } = require('../config/email');
+const { emailTransporter, createFreshTransport } = require('../config/email');
 
 // Send verification email
 async function sendVerificationEmail(toEmail, code, userName = 'Valued Customer') {
@@ -74,9 +74,18 @@ async function sendVerificationEmail(toEmail, code, userName = 'Valued Customer'
 
     let lastErr;
     for (let i = 1; i <= attempts; i++) {
+      // Use fresh transport for each attempt to avoid stale connections
+      const transporter = i === 1 ? emailTransporter : createFreshTransport();
+      
       try {
-        const info = await emailTransporter.sendMail(mailOptions);
+        const info = await transporter.sendMail(mailOptions);
         console.log(`✅ Verification email sent to ${toEmail}:`, info.messageId);
+        
+        // Close fresh transport if we created one
+        if (i > 1) {
+          transporter.close();
+        }
+        
         return { success: true, messageId: info.messageId };
       } catch (error) {
         lastErr = error;
@@ -93,10 +102,28 @@ async function sendVerificationEmail(toEmail, code, userName = 'Valued Customer'
         if (error.responseCode) {
           console.warn(`   SMTP response code: ${error.responseCode}`);
         }
+        if (error.command) {
+          console.warn(`   SMTP command: ${error.command}`);
+        }
         
-        // Exponential backoff: 500ms, 1000ms, 2000ms
+        // Close transport on error
+        if (i > 1) {
+          try {
+            transporter.close();
+          } catch (e) {
+            // Ignore close errors
+          }
+        }
+        
+        // Faster retry logic for quicker email delivery
         if (i < attempts) {
-          await new Promise(r => setTimeout(r, 500 * Math.pow(2, i - 1)));
+          const isTimeout = errorMsg.includes('timeout') || error.code === 'ETIMEDOUT' || error.command === 'CONN';
+          // Shorter delays for faster retries - like normal websites
+          const delay = isTimeout 
+            ? 1000 * i // Shorter delay for timeouts: 1s, 2s, 3s
+            : 500 * i; // Very fast retry: 500ms, 1000ms, 1500ms
+          console.log(`   Retrying in ${delay}ms...`);
+          await new Promise(r => setTimeout(r, delay));
         }
       }
     }

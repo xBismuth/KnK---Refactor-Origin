@@ -1161,9 +1161,18 @@ function editProfile() {
   const __codeInputOpen = document.getElementById('verification-code');
   const __codeGroupOpen = document.getElementById('verification-code-group');
   const __changeBtnOpen = document.getElementById('change-password-btn');
+  const __passwordContainer = document.getElementById('password-fields-container');
+  const __toggleBtn = document.getElementById('toggle-password-section');
+  const __arrow = document.getElementById('password-section-arrow');
+  
   if (__codeInputOpen) __codeInputOpen.value = '';
   if (__codeGroupOpen) __codeGroupOpen.classList.add('hidden');
   if (__changeBtnOpen) __changeBtnOpen.disabled = true;
+  
+  // Collapse password section on modal open
+  if (__passwordContainer) __passwordContainer.classList.add('hidden');
+  if (__toggleBtn) __toggleBtn.setAttribute('aria-expanded', 'false');
+  if (__arrow) __arrow.classList.remove('rotate-180');
   
   // Populate form with current user data
   const nameInput = document.getElementById('edit-name');
@@ -1318,17 +1327,28 @@ function createEditProfileModal() {
           </div>
           
           <!-- Change Password Section (only for email auth) -->
-          <div id="change-password-by-code" class="space-y-4 pt-6 border-t-2 border-gray-200 hidden">
-            <div class="flex items-center justify-between">
-              <h3 class="text-lg font-bold text-dark flex items-center gap-2">
+          <div id="change-password-by-code" class="pt-6 border-t-2 border-gray-200 hidden">
+            <div class="flex items-center justify-between mb-4">
+              <button
+                type="button"
+                id="toggle-password-section"
+                onclick="togglePasswordSection()"
+                class="flex items-center gap-2 text-lg font-bold text-dark hover:text-accent transition-colors focus:outline-none focus:ring-2 focus:ring-accent/20 rounded-lg p-2 -ml-2"
+                aria-expanded="false"
+                aria-controls="password-fields-container"
+              >
                 <svg class="w-5 h-5 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
                 </svg>
-                Change Password
-              </h3>
+                <span>Change Password</span>
+                <svg id="password-section-arrow" class="w-4 h-4 text-gray-500 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                </svg>
+              </button>
               <span id="code-status-badge" class="hidden px-2 py-1 text-xs rounded-full bg-green-100 text-green-700 font-semibold" role="status">Verified</span>
             </div>
 
+            <div id="password-fields-container" class="hidden space-y-4">
             <div class="grid grid-cols-1 gap-4">
               <div>
                 <label for="change-pass-email" class="block text-sm font-semibold text-dark mb-2">Email</label>
@@ -1434,12 +1454,13 @@ function createEditProfileModal() {
                 type="button" 
                 id="change-password-btn" 
                 onclick="changePasswordWithCode()" 
-                class="px-6 py-3 bg-gradient-to-r from-accent to-accent-dark text-white font-semibold rounded-xl hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-none"
+                class="px-4 py-2 text-sm bg-gradient-to-r from-accent to-accent-dark text-white font-semibold rounded-lg hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-none"
                 disabled
                 aria-disabled="true"
               >
                 Change Password
               </button>
+            </div>
             </div>
           </div>
           
@@ -1486,8 +1507,8 @@ function createEditProfileModal() {
       validatePasswordFields();
       if (newPass.value.trim().length >= 1 && !__codeRequested) {
         requestPasswordCode();
+        if (codeGroup) codeGroup.classList.remove('hidden');
       }
-      if (codeGroup) codeGroup.classList.remove('hidden');
       // Hide code group again if cleared
       if (!newPass.value.trim()) {
         __codeRequested = false;
@@ -1497,18 +1518,10 @@ function createEditProfileModal() {
         if (codeGroup) codeGroup.classList.add('hidden');
       }
     });
-    newPass.addEventListener('focus', () => {
-      if (!__codeRequested) requestPasswordCode();
-      if (codeGroup) codeGroup.classList.remove('hidden');
-    });
   }
   if (confirmPass) {
     confirmPass.addEventListener('input', () => {
       validatePasswordFields();
-    });
-    confirmPass.addEventListener('focus', () => {
-      if (!__codeRequested) requestPasswordCode();
-      if (codeGroup) codeGroup.classList.remove('hidden');
     });
   }
   if (codeInput) {
@@ -1745,6 +1758,50 @@ function validateVerificationCode() {
   return isValid;
 }
 
+// ==================== PASSWORD SECTION TOGGLE ====================
+function togglePasswordSection() {
+  const container = document.getElementById('password-fields-container');
+  const toggleBtn = document.getElementById('toggle-password-section');
+  const arrow = document.getElementById('password-section-arrow');
+  
+  if (!container || !toggleBtn) return;
+  
+  const isExpanded = !container.classList.contains('hidden');
+  
+  if (isExpanded) {
+    // Collapse
+    container.classList.add('hidden');
+    toggleBtn.setAttribute('aria-expanded', 'false');
+    if (arrow) arrow.classList.remove('rotate-180');
+    
+    // Reset password fields state
+    const newPass = document.getElementById('code-new-password');
+    const confirmPass = document.getElementById('code-confirm-password');
+    const codeInput = document.getElementById('verification-code');
+    const codeGroup = document.getElementById('verification-code-group');
+    
+    if (newPass) newPass.value = '';
+    if (confirmPass) confirmPass.value = '';
+    if (codeInput) codeInput.value = '';
+    if (codeGroup) codeGroup.classList.add('hidden');
+    
+    __codeRequested = false;
+    __passwordCodeVerified = false;
+    setCodeVerifiedUI(false);
+  } else {
+    // Expand
+    container.classList.remove('hidden');
+    toggleBtn.setAttribute('aria-expanded', 'true');
+    if (arrow) arrow.classList.add('rotate-180');
+    
+    // Focus on first password field
+    setTimeout(() => {
+      const newPass = document.getElementById('code-new-password');
+      if (newPass) newPass.focus();
+    }, 100);
+  }
+}
+
 // ==================== PASSWORD VISIBILITY TOGGLE ====================
 function togglePasswordVisibility(inputId, buttonId) {
   const input = document.getElementById(inputId);
@@ -1803,9 +1860,18 @@ function closeEditProfileModal(event) {
   const __codeInputClose = document.getElementById('verification-code');
   const __codeGroupClose = document.getElementById('verification-code-group');
   const __changeBtnClose = document.getElementById('change-password-btn');
+  const __passwordContainerClose = document.getElementById('password-fields-container');
+  const __toggleBtnClose = document.getElementById('toggle-password-section');
+  const __arrowClose = document.getElementById('password-section-arrow');
+  
   if (__codeInputClose) __codeInputClose.value = '';
   if (__codeGroupClose) __codeGroupClose.classList.add('hidden');
   if (__changeBtnClose) __changeBtnClose.disabled = true;
+  
+  // Collapse password section on modal close
+  if (__passwordContainerClose) __passwordContainerClose.classList.add('hidden');
+  if (__toggleBtnClose) __toggleBtnClose.setAttribute('aria-expanded', 'false');
+  if (__arrowClose) __arrowClose.classList.remove('rotate-180');
   
   // Clear all inline errors
   document.querySelectorAll('[id$="-error"], [id$="-success"]').forEach(el => {

@@ -8,7 +8,7 @@ Create a `.env` file in the root directory of your project with the following co
 
 ```env
 # ==================== RESEND EMAIL API ====================
-RESEND_API_KEY=re_eMfZNuWT_2QwKHqQiSMufJkm53PooWFer
+RESEND_API_KEY=re_your_api_key_here
 RESEND_FROM_EMAIL=noreply@yourdomain.com
 RESEND_FROM_NAME=Kusina ni Katya
 

@@ -64,14 +64,24 @@ async function sendVerificationEmail(toEmail, code, userName = 'Valued Customer'
     `
   };
 
-  try {
-    const info = await emailTransporter.sendMail(mailOptions);
-    console.log('✅ Verification email sent:', info.messageId);
-    return { success: true, messageId: info.messageId };
-  } catch (error) {
-    console.error('❌ Error sending email:', error.message);
-    throw error;
-  }
+  const sendWithRetry = async (attempts = 3) => {
+    let lastErr;
+    for (let i = 1; i <= attempts; i++) {
+      try {
+        const info = await emailTransporter.sendMail(mailOptions);
+        console.log('✅ Verification email sent:', info.messageId);
+        return { success: true, messageId: info.messageId };
+      } catch (error) {
+        lastErr = error;
+        console.warn(`📧 Send attempt ${i} failed: ${error.message}`);
+        // Exponential backoff: 500ms, 1000ms, 2000ms
+        await new Promise(r => setTimeout(r, 500 * Math.pow(2, i - 1)));
+      }
+    }
+    console.error('❌ Error sending email after retries:', lastErr?.message);
+    throw lastErr;
+  };
+  return sendWithRetry();
 }
 
 // Send login verification email
@@ -136,14 +146,23 @@ async function sendLoginVerificationEmail(toEmail, code, userName = 'Valued Cust
     `
   };
 
-  try {
-    const info = await emailTransporter.sendMail(mailOptions);
-    console.log('✅ Login verification email sent:', info.messageId);
-    return { success: true, messageId: info.messageId };
-  } catch (error) {
-    console.error('❌ Error sending login email:', error.message);
-    throw error;
-  }
+  const sendWithRetry = async (attempts = 3) => {
+    let lastErr;
+    for (let i = 1; i <= attempts; i++) {
+      try {
+        const info = await emailTransporter.sendMail(mailOptions);
+        console.log('✅ Login verification email sent:', info.messageId);
+        return { success: true, messageId: info.messageId };
+      } catch (error) {
+        lastErr = error;
+        console.warn(`📧 Login email attempt ${i} failed: ${error.message}`);
+        await new Promise(r => setTimeout(r, 500 * Math.pow(2, i - 1)));
+      }
+    }
+    console.error('❌ Error sending login email after retries:', lastErr?.message);
+    throw lastErr;
+  };
+  return sendWithRetry();
 }
 
 // Send password reset email
@@ -208,14 +227,23 @@ async function sendPasswordResetEmail(toEmail, code, userName = 'Valued Customer
     `
   };
 
-  try {
-    const info = await emailTransporter.sendMail(mailOptions);
-    console.log('✅ Password reset email sent:', info.messageId);
-    return { success: true, messageId: info.messageId };
-  } catch (error) {
-    console.error('❌ Error sending password reset email:', error.message);
-    throw error;
-  }
+  const sendWithRetry = async (attempts = 3) => {
+    let lastErr;
+    for (let i = 1; i <= attempts; i++) {
+      try {
+        const info = await emailTransporter.sendMail(mailOptions);
+        console.log('✅ Password reset email sent:', info.messageId);
+        return { success: true, messageId: info.messageId };
+      } catch (error) {
+        lastErr = error;
+        console.warn(`📧 Reset email attempt ${i} failed: ${error.message}`);
+        await new Promise(r => setTimeout(r, 500 * Math.pow(2, i - 1)));
+      }
+    }
+    console.error('❌ Error sending password reset email after retries:', lastErr?.message);
+    throw lastErr;
+  };
+  return sendWithRetry();
 }
 
 module.exports = {

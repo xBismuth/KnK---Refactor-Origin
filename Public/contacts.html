@@ -766,6 +766,24 @@ function toggleMobileMenu() {
   }
 }
 
+// ==================== API URL HELPER ====================
+
+/**
+ * Get API base URL with fallback logic
+ */
+function apiUrl(path) {
+  const stored = localStorage.getItem('apiBase');
+  if (stored && stored.trim().length > 0) {
+    return stored.replace(/\/+$/, '') + path;
+  }
+  // If current origin is already the Railway app (or same backend), use relative path
+  if (window.location.origin.includes('kusinanikatya.up.railway.app')) {
+    return path;
+  }
+  // Default to hosted API
+  return 'https://kusinanikatya.up.railway.app' + path;
+}
+
 // ==================== CONTACT FORM HANDLING ====================
 
 /**
@@ -807,7 +825,7 @@ async function handleFormSubmit(event) {
   
   try {
     // Send to backend
-    const response = await fetch('/api/support', {
+    const response = await fetch(apiUrl('/api/support'), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'

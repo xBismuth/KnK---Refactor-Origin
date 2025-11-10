@@ -7,7 +7,6 @@ require('dotenv').config();
 
 // Import configurations
 const db = require('./config/db');
-const { emailTransporter } = require('./config/email');
 
 // Import middlewares
 const { apiLimiter } = require('./middlewares/rateLimiter');
@@ -131,7 +130,7 @@ app.use((err, req, res, next) => {
 // ==================== START SERVER ====================
 server.listen(PORT, () => {
   const paymongoOk = !!process.env.PAYMONGO_SECRET_KEY;
-  const emailOk = !!process.env.MAIL_USER;
+  const emailOk = !!process.env.RESEND_API_KEY;
   const jwtOk = !!process.env.JWT_SECRET;
   const dbName = process.env.DB_NAME || 'kusina_db';
 

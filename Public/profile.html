@@ -282,9 +282,10 @@
 
 <script>
 // ==================== GLOBAL STATE ====================
-const API_URL = '/api';
-// Base for auth endpoints (supports file://). Configure via localStorage.apiBase if needed.
+// Base for endpoints (supports file://). Configure via localStorage.apiBase if needed.
 const AUTH_API_BASE = (localStorage.getItem('apiBase') || (location.origin.startsWith('file:') ? 'http://localhost:3000' : '')).replace(/\/+$/, '');
+// For logs; requests will try both base + endpoint and base + '/api' + endpoint to avoid 404s
+const API_URL = AUTH_API_BASE;
 let currentUser = null;
 let socket = null;
 let allOrders = [];
@@ -386,9 +387,14 @@ async function apiFetch(endpoint, options = {}) {
   
   const config = { ...defaultOptions, ...options };
   
-  console.log(`📡 API Call: ${options.method || 'GET'} ${API_URL}${endpoint}`);
-  
-  const response = await fetch(`${API_URL}${endpoint}`, config);
+  console.log(`📡 API Call: ${options.method || 'GET'} ${AUTH_API_BASE}${endpoint}`);
+
+  // Try primary: /endpoint, then fallback: /api/endpoint if 404
+  let response = await fetch(`${AUTH_API_BASE}${endpoint}`, config);
+  if (response.status === 404) {
+    console.warn('🔁 404 on primary path, retrying with /api prefix...');
+    response = await fetch(`${AUTH_API_BASE}/api${endpoint}`, config);
+  }
   
   // Handle authentication errors
   if (response.status === 401 || response.status === 403) {
@@ -1523,7 +1529,8 @@ async function saveProfile(event) {
       throw new Error('No authentication token');
     }
     
-    const response = await fetch('/auth/update-profile', {
+    // Try /auth/update-profile, fallback to /api/auth/update-profile automatically
+    let response = await fetch(`${AUTH_API_BASE}/auth/update-profile`, {
       method: 'PUT',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -1531,6 +1538,16 @@ async function saveProfile(event) {
       },
       body: JSON.stringify(payload)
     });
+    if (response.status === 404) {
+      response = await fetch(`${AUTH_API_BASE}/api/auth/update-profile`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
+    }
     
     if (response.status === 401 || response.status === 403) {
       showToast('Session expired. Please login again.', 'error');
@@ -1627,14 +1644,23 @@ async function requestPasswordCode() {
     return;
   }
   try {
-    const res = await fetch(`${AUTH_API_BASE}/auth/request-password-change-code`, {
+    let res = await fetch(`${AUTH_API_BASE}/auth/request-password-change-code`, {
       method: 'POST',
       headers: getAuthedHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify({ email })
     });
     const data = await res.json().catch(() => ({}));
-    if (!res.ok || data.success === false) {
-      throw new Error(data.message || `HTTP ${res.status}`);
+    if (res.status === 404) {
+      // Fallback to forgot-password
+      res = await fetch(`${AUTH_API_BASE}/auth/forgot-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      });
+    }
+    if (!res.ok) {
+      const msg = data?.message || `HTTP ${res.status}`;
+      throw new Error(msg);
     }
     __passwordCodeVerified = false;
     setCodeVerifiedUI(false);
@@ -1663,14 +1689,21 @@ async function verifyPasswordCode() {
     return;
   }
   try {
-    const res = await fetch(`${AUTH_API_BASE}/auth/verify-password-change-code`, {
+    let res = await fetch(`${AUTH_API_BASE}/auth/verify-password-change-code`, {
       method: 'POST',
       headers: getAuthedHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify({ email, code })
     });
+    if (res.status === 404) {
+      // If verify endpoint is not available, defer verification to change step
+      __passwordCodeVerified = true;
+      setCodeVerifiedUI(true);
+      showToast('Code entered. It will be validated when changing password.', 'success');
+      return;
+    }
     const data = await res.json().catch(() => ({}));
     if (!res.ok || data.success === false) {
-      throw new Error(data.message || `HTTP ${res.status}`);
+      throw new Error(data?.message || `HTTP ${res.status}`);
     }
     __passwordCodeVerified = true;
     setCodeVerifiedUI(true);
@@ -1703,14 +1736,23 @@ async function changePasswordWithCode() {
   try {
     btn.disabled = true;
     btn.textContent = 'Changing...';
-    const res = await fetch(`${AUTH_API_BASE}/auth/change-password-with-code`, {
+    let res = await fetch(`${AUTH_API_BASE}/auth/change-password-with-code`, {
       method: 'POST',
       headers: getAuthedHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify({ email, code, newPassword })
     });
-    const data = await res.json().catch(() => ({}));
+    let data = await res.json().catch(() => ({}));
+    if (res.status === 404) {
+      // Fallback to reset-password
+      res = await fetch(`${AUTH_API_BASE}/auth/reset-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, code, newPassword })
+      });
+      try { data = await res.json(); } catch(e) { data = {}; }
+    }
     if (!res.ok || data.success === false) {
-      throw new Error(data.message || `HTTP ${res.status}`);
+      throw new Error(data?.message || `HTTP ${res.status}`);
     }
     showToast('Password changed successfully!', 'success');
     __passwordCodeVerified = false;

@@ -2,27 +2,36 @@
 const nodemailer = require('nodemailer');
 require('dotenv').config();
 
+const SMTP_HOST = process.env.SMTP_HOST || 'smtp.gmail.com';
+const SMTP_PORT = parseInt(process.env.SMTP_PORT || '465', 10);
+const SMTP_SECURE = process.env.SMTP_SECURE
+  ? process.env.SMTP_SECURE.toLowerCase() === 'true'
+  : SMTP_PORT === 465;
+
 const emailTransporter = nodemailer.createTransport({
-  service: 'gmail',
-  host: 'smtp.gmail.com',
-  port: 587,
-  secure: false, // true for 465, false for other ports
+  host: SMTP_HOST,
+  port: SMTP_PORT,
+  secure: SMTP_SECURE,
   auth: {
     user: process.env.MAIL_USER,
     pass: process.env.MAIL_PASS
   },
-  // Timeout settings for Railway/cloud environments (increased for better reliability)
-  connectionTimeout: 20000, // 20 seconds to establish connection
-  greetingTimeout: 10000, // 10 seconds to receive greeting
-  socketTimeout: 20000, // 20 seconds for socket inactivity
-  // Retry settings
-  pool: true,
-  maxConnections: 1,
-  maxMessages: 3,
-  // Additional options for better reliability
+  pool: process.env.SMTP_POOL
+    ? process.env.SMTP_POOL.toLowerCase() === 'true'
+    : false,
+  maxConnections: parseInt(process.env.SMTP_MAX_CONNECTIONS || '1', 10),
+  maxMessages: parseInt(process.env.SMTP_MAX_MESSAGES || '5', 10),
+  connectionTimeout: parseInt(process.env.SMTP_CONNECTION_TIMEOUT || '20000', 10),
+  greetingTimeout: parseInt(process.env.SMTP_GREETING_TIMEOUT || '10000', 10),
+  socketTimeout: parseInt(process.env.SMTP_SOCKET_TIMEOUT || '20000', 10),
   tls: {
-    rejectUnauthorized: false // Allow self-signed certificates if needed
-  }
+    rejectUnauthorized: process.env.SMTP_TLS_REJECT_UNAUTHORIZED
+      ? process.env.SMTP_TLS_REJECT_UNAUTHORIZED.toLowerCase() === 'true'
+      : true
+  },
+  logger: process.env.SMTP_DEBUG
+    ? process.env.SMTP_DEBUG.toLowerCase() === 'true'
+    : false
 });
 
 // Verify email configuration (non-blocking, async)

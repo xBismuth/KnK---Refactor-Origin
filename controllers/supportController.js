@@ -1,6 +1,7 @@
 // ==================== SUPPORT CONTROLLER ====================
 const db = require('../config/db');
 const { emailTransporter } = require('../config/email');
+const { sendContactNotification } = require('../utils/emailHelper');
 
 // Submit support ticket
 exports.submitTicket = async (req, res) => {
@@ -29,6 +30,17 @@ exports.submitTicket = async (req, res) => {
     );
 
     console.log(`✅ New support ticket created: ID ${result.insertId} from ${email}`);
+
+    // Send admin notification (non-blocking)
+    const sendAdminNotification = async () => {
+      try {
+        await sendContactNotification({ name, email, phone, subject, message });
+      } catch (error) {
+        // Don't block response if admin notification fails
+        console.error('⚠️ Failed to send admin notification:', error.message);
+      }
+    };
+    sendAdminNotification().catch(() => {});
 
     // Send confirmation email (non-blocking with retry logic)
     const sendEmailWithRetry = async () => {

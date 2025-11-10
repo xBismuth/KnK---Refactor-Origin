@@ -1311,7 +1311,7 @@ function createEditProfileModal() {
                 </p>
               </div>
 
-              <div>
+              <div id="verification-code-group" class="hidden">
                 <label for="verification-code" class="block text-sm font-semibold text-dark mb-2">Verification Code</label>
                 <input 
                   type="text" 
@@ -1389,20 +1389,24 @@ function createEditProfileModal() {
   const newPass = document.getElementById('code-new-password');
   const confirmPass = document.getElementById('code-confirm-password');
   const codeInput = document.getElementById('verification-code');
+  const codeGroup = document.getElementById('verification-code-group');
 
   if (newPass) {
     newPass.addEventListener('input', () => {
       if (newPass.value.trim().length >= 1 && !__codeRequested) {
         requestPasswordCode();
       }
+      if (codeGroup) codeGroup.classList.remove('hidden');
     });
     newPass.addEventListener('focus', () => {
       if (!__codeRequested) requestPasswordCode();
+      if (codeGroup) codeGroup.classList.remove('hidden');
     });
   }
   if (confirmPass) {
     confirmPass.addEventListener('focus', () => {
       if (!__codeRequested) requestPasswordCode();
+      if (codeGroup) codeGroup.classList.remove('hidden');
     });
   }
   if (codeInput) {

@@ -1154,6 +1154,17 @@ function editProfile() {
     return;
   }
   
+  // Reset code flow state on every open
+  __passwordCodeVerified = false;
+  __codeRequested = false;
+  setCodeVerifiedUI(false);
+  const __codeInputOpen = document.getElementById('verification-code');
+  const __codeGroupOpen = document.getElementById('verification-code-group');
+  const __changeBtnOpen = document.getElementById('change-password-btn');
+  if (__codeInputOpen) __codeInputOpen.value = '';
+  if (__codeGroupOpen) __codeGroupOpen.classList.add('hidden');
+  if (__changeBtnOpen) __changeBtnOpen.disabled = true;
+  
   // Populate form with current user data
   const nameInput = document.getElementById('edit-name');
   const emailInput = document.getElementById('edit-email');
@@ -1403,6 +1414,14 @@ function createEditProfileModal() {
         requestPasswordCode();
       }
       if (codeGroup) codeGroup.classList.remove('hidden');
+      // Hide code group again if cleared
+      if (!newPass.value.trim()) {
+        __codeRequested = false;
+        __passwordCodeVerified = false;
+        setCodeVerifiedUI(false);
+        if (codeInput) codeInput.value = '';
+        if (codeGroup) codeGroup.classList.add('hidden');
+      }
     });
     newPass.addEventListener('focus', () => {
       if (!__codeRequested) requestPasswordCode();
@@ -1445,6 +1464,17 @@ function closeEditProfileModal(event) {
   if (form) form.reset();
   
   hideEditProfileError();
+  
+  // Also reset code flow state on close
+  __passwordCodeVerified = false;
+  __codeRequested = false;
+  setCodeVerifiedUI(false);
+  const __codeInputClose = document.getElementById('verification-code');
+  const __codeGroupClose = document.getElementById('verification-code-group');
+  const __changeBtnClose = document.getElementById('change-password-btn');
+  if (__codeInputClose) __codeInputClose.value = '';
+  if (__codeGroupClose) __codeGroupClose.classList.add('hidden');
+  if (__changeBtnClose) __changeBtnClose.disabled = true;
 }
 
 async function saveProfile(event) {

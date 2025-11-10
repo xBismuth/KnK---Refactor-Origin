@@ -59,9 +59,9 @@ exports.signup = async (req, res) => {
       }
     });
 
-    // Check if email credentials are configured
-    if (!process.env.MAIL_USER || !process.env.MAIL_PASS) {
-      console.error('❌ Email credentials not configured! MAIL_USER or MAIL_PASS missing.');
+    // Check if Resend API key is configured
+    if (!process.env.RESEND_API_KEY) {
+      console.error('❌ Resend API key not configured! RESEND_API_KEY missing.');
       return res.status(500).json({ 
         success: false, 
         message: 'Email service not configured. Please contact support.' 
@@ -224,9 +224,9 @@ exports.resendCode = async (req, res) => {
 
     verificationCodes.set(email, { ...verificationData, code: newCode, expiresAt });
 
-    // Check if email credentials are configured
-    if (!process.env.MAIL_USER || !process.env.MAIL_PASS) {
-      console.error('❌ Email credentials not configured! MAIL_USER or MAIL_PASS missing.');
+    // Check if Resend API key is configured
+    if (!process.env.RESEND_API_KEY) {
+      console.error('❌ Resend API key not configured! RESEND_API_KEY missing.');
       return res.status(500).json({ 
         success: false, 
         message: 'Email service not configured. Please contact support.' 

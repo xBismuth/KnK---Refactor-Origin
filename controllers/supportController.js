@@ -1,6 +1,6 @@
 // ==================== SUPPORT CONTROLLER ====================
 const db = require('../config/db');
-const { emailTransporter } = require('../config/email');
+const { resend, FROM_EMAIL, FROM_NAME } = require('../config/email');
 const { sendContactNotification } = require('../utils/emailHelper');
 
 // Submit support ticket
@@ -44,14 +44,7 @@ exports.submitTicket = async (req, res) => {
 
     // Send confirmation email (non-blocking with retry logic)
     const sendEmailWithRetry = async () => {
-      const mailOptions = {
-        from: {
-          name: 'Kusina ni Katya',
-          address: process.env.MAIL_USER
-        },
-        to: email,
-        subject: 'We received your message - Kusina ni Katya',
-        html: `
+      const html = `
           <!DOCTYPE html>
           <html>
           <head>
@@ -100,36 +93,32 @@ exports.submitTicket = async (req, res) => {
         `
       };
 
-      const sendWithRetry = async (attempts = 3) => {
-        let lastErr;
-        for (let i = 1; i <= attempts; i++) {
-          try {
-            const info = await emailTransporter.sendMail(mailOptions);
-            console.log('✅ Confirmation email sent:', info.messageId);
-            return { success: true, messageId: info.messageId };
-          } catch (error) {
-            lastErr = error;
-            console.warn(`📧 Confirmation email attempt ${i} failed: ${error.message}`);
-            // Exponential backoff: 500ms, 1000ms, 2000ms
-            if (i < attempts) {
-              await new Promise(r => setTimeout(r, 500 * Math.pow(2, i - 1)));
-            }
-          }
-        }
-        console.error('❌ Error sending confirmation email after retries:', lastErr?.message);
-        throw lastErr;
-      };
-
       try {
-        await sendWithRetry();
+        if (!process.env.RESEND_API_KEY) {
+          throw new Error('Resend API key not configured');
+        }
+        
+        const { data, error } = await resend.emails.send({
+          from: `${FROM_NAME} <${FROM_EMAIL}>`,
+          to: [email],
+          subject: 'We received your message - Kusina ni Katya',
+          html: html
+        });
+
+        if (error) {
+          throw new Error(error.message || 'Failed to send email via Resend');
+        }
+
+        console.log('✅ Confirmation email sent via Resend:', data?.id);
       } catch (emailError) {
         // Don't throw - email failure shouldn't block the response
-        console.error('⚠️ Failed to send confirmation email after all retries:', emailError.message);
+        console.error('⚠️ Failed to send confirmation email:', emailError.message);
         // Log full error in development
         if (process.env.NODE_ENV !== 'production') {
           console.error('Email error details:', emailError);
         }
       }
+
     };
 
     // Send email asynchronously (don't await - don't block response)
@@ -186,14 +175,7 @@ exports.replyToTicket = async (req, res) => {
       });
     }
 
-    const mailOptions = {
-      from: {
-        name: 'Kusina ni Katya Support',
-        address: process.env.MAIL_USER
-      },
-      to: email,
-      subject: `Re: ${subject}`,
-      html: `
+    const html = `
         <!DOCTYPE html>
         <html>
         <head>
@@ -247,28 +229,28 @@ exports.replyToTicket = async (req, res) => {
       `
     };
 
-    // Send with retry logic
-    const sendWithRetry = async (attempts = 3) => {
-      let lastErr;
-      for (let i = 1; i <= attempts; i++) {
-        try {
-          const info = await emailTransporter.sendMail(mailOptions);
-          console.log('✅ Support reply email sent:', info.messageId);
-          return { success: true, messageId: info.messageId };
-        } catch (error) {
-          lastErr = error;
-          console.warn(`📧 Support reply email attempt ${i} failed: ${error.message}`);
-          // Exponential backoff: 500ms, 1000ms, 2000ms
-          if (i < attempts) {
-            await new Promise(r => setTimeout(r, 500 * Math.pow(2, i - 1)));
-          }
-        }
+    // Send with Resend
+    try {
+      if (!process.env.RESEND_API_KEY) {
+        throw new Error('Resend API key not configured');
       }
-      console.error('❌ Error sending support reply email after retries:', lastErr?.message);
-      throw lastErr;
-    };
 
-    await sendWithRetry();
+      const { data, error } = await resend.emails.send({
+        from: `${FROM_NAME} <${FROM_EMAIL}>`,
+        to: [email],
+        subject: `Re: ${subject}`,
+        html: html
+      });
+
+      if (error) {
+        throw new Error(error.message || 'Failed to send email via Resend');
+      }
+
+      console.log('✅ Support reply email sent via Resend:', data?.id);
+    } catch (emailError) {
+      console.error('❌ Failed to send support reply email:', emailError.message);
+      throw emailError;
+    }
 
     await db.query(
       'UPDATE support_tickets SET status = ?, replied_at = NOW() WHERE id = ?',

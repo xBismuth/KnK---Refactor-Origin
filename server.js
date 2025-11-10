@@ -76,7 +76,7 @@ app.get('/api/health', (req, res) => {
     timestamp: new Date().toISOString(),
     database: 'connected',
     paymongo: process.env.PAYMONGO_SECRET_KEY ? 'configured' : 'not configured',
-    email: process.env.MAIL_USER ? 'configured' : 'not configured',
+    email: process.env.RESEND_API_KEY ? 'configured (Resend)' : 'not configured',
     socketio: 'enabled'
   });
 });

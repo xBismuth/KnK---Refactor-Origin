@@ -255,7 +255,19 @@ body {
 </div>
 
 <script>
-// Simple direct calls (match login.html behavior)
+// Simple direct calls with optional API base override
+function apiUrl(path) {
+  const stored = localStorage.getItem('apiBase');
+  if (stored && stored.trim().length > 0) {
+    return stored.replace(/\/+$/, '') + path;
+  }
+  // If current origin is already the Railway app (or same backend), use relative path
+  if (window.location.origin.includes('kusinanikatya.up.railway.app')) {
+    return path;
+  }
+  // Default to hosted API
+  return 'https://kusinanikatya.up.railway.app' + path;
+}
 
 let userEmail = '';
 let codeExpiryTimer;
@@ -294,7 +306,7 @@ document.getElementById('signup-form').addEventListener('submit', async (e) => {
   const submitBtn = e.submitter || document.querySelector('#signup-form button[type="submit"]');
 
   try {
-    const response = await fetch('/auth/signup', {
+    const response = await fetch(apiUrl('/auth/signup'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name, email, phone, password })
@@ -339,7 +351,7 @@ document.getElementById('verification-form').addEventListener('submit', async (e
   }
 
   try {
-    const response = await fetch('/auth/verify-code', {
+    const response = await fetch(apiUrl('/auth/verify-code'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: userEmail, code })
@@ -371,7 +383,7 @@ document.getElementById('verification-form').addEventListener('submit', async (e
 // Resend verification code
 async function resendCode() {
   try {
-    const response = await fetch('/auth/resend-code', {
+    const response = await fetch(apiUrl('/auth/resend-code'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: userEmail })
@@ -454,7 +466,7 @@ function hideError() {
 function handleSignupGoogle(response) {
   const token = response.credential;
 
-  fetch('/auth/google', {
+  fetch(apiUrl('/auth/google'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ token })

@@ -255,6 +255,22 @@ body {
 </div>
 
 <script>
+// API base handling similar to profile/admin pages
+const AUTH_API_BASE = (localStorage.getItem('apiBase') || (location.origin.startsWith('file:') ? 'http://localhost:3000' : '')).replace(/\/+$/, '');
+async function apiPost(path, body) {
+  const opts = {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body || {})
+  };
+  // try without /api, then with /api
+  let res = await fetch(`${AUTH_API_BASE}${path}`, opts);
+  if (res.status === 404) {
+    res = await fetch(`${AUTH_API_BASE}/api${path}`, opts);
+  }
+  return res;
+}
+
 let userEmail = '';
 let codeExpiryTimer;
 
@@ -268,26 +284,24 @@ document.getElementById('signup-form').addEventListener('submit', async (e) => {
   const password = document.getElementById('signup-password').value;
 
   try {
-    const response = await fetch('/auth/signup', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, email, phone, password })
-    });
+    const response = await apiPost('/auth/signup', { name, email, phone, password });
 
-    const data = await response.json();
+    let data;
+    try { data = await response.json(); } catch(e) { data = null; }
 
-    if (data.success) {
+    if (response.ok && data && data.success) {
       userEmail = email;
       showVerificationForm();
       startCodeTimer();
       
       // Show dev code in console for testing
-      if (data.devCode) {
+      if (data && data.devCode) {
         console.log('🔑 Development Code:', data.devCode);
         alert('Development Mode: Check console for verification code');
       }
     } else {
-      alert('Signup failed: ' + data.message);
+      const message = (data && data.message) || (response.status === 404 ? 'Signup endpoint not found. Configure apiBase or backend router.' : `HTTP ${response.status}`);
+      alert('Signup failed: ' + message);
     }
   } catch (error) {
     console.error('Signup error:', error);
@@ -307,15 +321,11 @@ document.getElementById('verification-form').addEventListener('submit', async (e
   }
 
   try {
-    const response = await fetch('/auth/verify-code', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: userEmail, code })
-    });
+    const response = await apiPost('/auth/verify-code', { email: userEmail, code });
 
-    const data = await response.json();
+    let data; try { data = await response.json(); } catch(e) { data = null; }
 
-    if (data.success) {
+    if (response.ok && data && data.success) {
       clearInterval(codeExpiryTimer);
       
       // Save token and user data
@@ -328,7 +338,7 @@ document.getElementById('verification-form').addEventListener('submit', async (e
         window.location.href = data.user.role === 'admin' ? 'dashboard.html' : 'index.html';
       }, 2000);
     } else {
-      showError(data.message);
+      showError((data && data.message) || (response.status === 404 ? 'Verification endpoint not found.' : `HTTP ${response.status}`));
     }
   } catch (error) {
     console.error('Verification error:', error);
@@ -339,26 +349,22 @@ document.getElementById('verification-form').addEventListener('submit', async (e
 // Resend verification code
 async function resendCode() {
   try {
-    const response = await fetch('/auth/resend-code', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: userEmail })
-    });
+    const response = await apiPost('/auth/resend-code', { email: userEmail });
 
-    const data = await response.json();
+    let data; try { data = await response.json(); } catch(e) { data = null; }
 
-    if (data.success) {
+    if (response.ok && data && data.success) {
       alert('New verification code sent to your email!');
       document.getElementById('verification-code').value = '';
       clearInterval(codeExpiryTimer);
       startCodeTimer();
       
       // Show dev code in console for testing
-      if (data.devCode) {
+      if (data && data.devCode) {
         console.log('🔑 New Development Code:', data.devCode);
       }
     } else {
-      alert('Failed to resend code: ' + data.message);
+      alert('Failed to resend code: ' + ((data && data.message) || (response.status === 404 ? 'Resend endpoint not found.' : `HTTP ${response.status}`)));
     }
   } catch (error) {
     console.error('Resend error:', error);
@@ -418,11 +424,7 @@ function hideError() {
 function handleSignupGoogle(response) {
   const token = response.credential;
 
-  fetch('/auth/google', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ token })
-  })
+  apiPost('/auth/google', { token })
   .then(res => res.json())
   .then(data => {
     if (data.success) {

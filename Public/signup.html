@@ -255,18 +255,36 @@ body {
 </div>
 
 <script>
-// Simple direct calls with optional API base override
-function apiUrl(path) {
+// Get API base URL with fallback logic
+function getApiBase() {
   const stored = localStorage.getItem('apiBase');
   if (stored && stored.trim().length > 0) {
-    return stored.replace(/\/+$/, '') + path;
+    return stored.replace(/\/+$/, '');
   }
   // If current origin is already the Railway app (or same backend), use relative path
   if (window.location.origin.includes('kusinanikatya.up.railway.app')) {
-    return path;
+    return '';
   }
   // Default to hosted API
-  return 'https://kusinanikatya.up.railway.app' + path;
+  return 'https://kusinanikatya.up.railway.app';
+}
+
+// Fetch with automatic fallback for 404 errors
+async function apiFetch(path, options = {}) {
+  const base = getApiBase();
+  const url = base + path;
+  
+  // Try primary path first
+  let response = await fetch(url, options);
+  
+  // If 404, try with /api prefix
+  if (response.status === 404 && !path.startsWith('/api/')) {
+    console.warn(`⚠️ Endpoint ${url} not found. Retrying with /api prefix.`);
+    const fallbackUrl = base + '/api' + path;
+    response = await fetch(fallbackUrl, options);
+  }
+  
+  return response;
 }
 
 let userEmail = '';
@@ -306,7 +324,7 @@ document.getElementById('signup-form').addEventListener('submit', async (e) => {
   const submitBtn = e.submitter || document.querySelector('#signup-form button[type="submit"]');
 
   try {
-    const response = await fetch(apiUrl('/auth/signup'), {
+    const response = await apiFetch('/auth/signup', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name, email, phone, password })
@@ -351,7 +369,7 @@ document.getElementById('verification-form').addEventListener('submit', async (e
   }
 
   try {
-    const response = await fetch(apiUrl('/auth/verify-code'), {
+    const response = await apiFetch('/auth/verify-code', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: userEmail, code })
@@ -383,7 +401,7 @@ document.getElementById('verification-form').addEventListener('submit', async (e
 // Resend verification code
 async function resendCode() {
   try {
-    const response = await fetch(apiUrl('/auth/resend-code'), {
+    const response = await apiFetch('/auth/resend-code', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: userEmail })
@@ -466,7 +484,7 @@ function hideError() {
 function handleSignupGoogle(response) {
   const token = response.credential;
 
-  fetch(apiUrl('/auth/google'), {
+  apiFetch('/auth/google', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ token })

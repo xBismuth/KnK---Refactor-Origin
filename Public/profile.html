@@ -1326,8 +1326,8 @@ function createEditProfileModal() {
             </div>
           </div>
           
-          <!-- Change Password Section (only for email auth) -->
-          <div id="change-password-by-code" class="pt-6 border-t-2 border-gray-200 hidden">
+          <!-- Change Password Section (only for email auth) - Separate from profile form -->
+          <div id="change-password-by-code" class="pt-6 border-t-2 border-gray-200 hidden" data-separate-section="true">
             <div class="flex items-center justify-between mb-4">
               <button
                 type="button"
@@ -1464,7 +1464,7 @@ function createEditProfileModal() {
             </div>
           </div>
           
-          <!-- Buttons -->
+          <!-- Profile Form Buttons (separate from password change) -->
           <div class="flex gap-4 pt-4 border-t border-gray-200">
             <button 
               type="button" 
@@ -1738,9 +1738,8 @@ function validateField(fieldId) {
   }
   
   if (successEl && isValid && value && fieldId !== 'code-new-password' && fieldId !== 'code-confirm-password') {
-    successEl.classList.remove('hidden');
-    successEl.textContent = 'Looks good!';
-    setTimeout(() => successEl.classList.add('hidden'), 2000);
+    // Success message removed - field validation is sufficient
+    successEl.classList.add('hidden');
   }
   
   return isValid;
@@ -1961,6 +1960,10 @@ async function saveProfile(event) {
     showEditProfileError('Please enter a valid email address');
     return;
   }
+  
+  // IMPORTANT: Password change is completely separate and handled by changePasswordWithCode()
+  // The password fields are in the same modal but are NOT part of this form submission
+  // Only name, email, and phone are sent to the update-profile endpoint
   
   // Disable submit button
   if (submitBtn) {

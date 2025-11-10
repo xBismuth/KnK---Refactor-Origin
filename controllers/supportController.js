@@ -1,6 +1,6 @@
 // ==================== SUPPORT CONTROLLER ====================
 const db = require('../config/db');
-const { sendContactNotification } = require('../utils/emailHelper');
+const { sendContactNotification, sendEmailWithResend } = require('../utils/emailHelper');
 
 // Submit support ticket
 exports.submitTicket = async (req, res) => {
@@ -93,7 +93,6 @@ exports.submitTicket = async (req, res) => {
 
       try {
         // Use the emailHelper function which includes retry logic
-        const { sendEmailWithResend } = require('../utils/emailHelper');
         await sendEmailWithResend(email, 'We received your message - Kusina ni Katya', html);
       } catch (emailError) {
         // Don't throw - email failure shouldn't block the response
@@ -213,7 +212,6 @@ exports.replyToTicket = async (req, res) => {
       `;
 
     // Send with Resend using emailHelper (includes retry logic)
-    const { sendEmailWithResend } = require('../utils/emailHelper');
     await sendEmailWithResend(email, `Re: ${subject}`, html);
 
     await db.query(

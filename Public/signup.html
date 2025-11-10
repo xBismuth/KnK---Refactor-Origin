@@ -255,31 +255,12 @@ body {
 </div>
 
 <script>
-// API base handling similar to profile/admin pages
-// Prefer explicitly set apiBase; otherwise default to production API
-const AUTH_API_BASE = (
-  localStorage.getItem('apiBase')
-  || 'https://kusinanikatya.up.railway.app'
-).replace(/\/+$/, '');
-async function apiPost(path, body) {
-  const opts = {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body || {})
-  };
-  // try without /api, then with /api
-  let res = await fetch(`${AUTH_API_BASE}${path}`, opts);
-  if (res.status === 404) {
-    res = await fetch(`${AUTH_API_BASE}/api${path}`, opts);
-  }
-  return res;
-}
+// Simple direct calls (match login.html behavior)
 
 let userEmail = '';
 let codeExpiryTimer;
 let signupCooldownTimer = null;
 let resendCooldownTimer = null;
-let __emailConfigured = true;
 
 function startButtonCooldown(buttonEl, seconds, baseText) {
   if (!buttonEl) return;
@@ -300,26 +281,7 @@ function startButtonCooldown(buttonEl, seconds, baseText) {
   return timerId;
 }
 
-// Check server health to warn if email is not configured
-document.addEventListener('DOMContentLoaded', async () => {
-  try {
-    const res = await fetch(`${AUTH_API_BASE}/api/health`);
-    const data = await res.json();
-    if (!res.ok) throw new Error('Health check failed');
-    if (data && data.email !== 'configured') {
-      __emailConfigured = false;
-      console.warn('⚠️ Email not configured on server. Signup will return devCode only if EMAIL_DEV_MODE=true.');
-      // Optional: show a small non-blocking hint
-      const hint = document.createElement('div');
-      hint.className = 'mb-4 p-3 rounded-lg text-sm bg-yellow-50 border border-yellow-200 text-yellow-800';
-      hint.textContent = 'Note: Email service is not configured on the server. Verification emails may not be sent.';
-      const container = document.querySelector('.bg-white.rounded-3xl.shadow-2xl');
-      if (container) container.prepend(hint);
-    }
-  } catch (e) {
-    console.warn('Health check unavailable:', e.message);
-  }
-});
+// No health banner needed; behave like login.html
 
 // Handle signup form submission
 document.getElementById('signup-form').addEventListener('submit', async (e) => {
@@ -332,7 +294,11 @@ document.getElementById('signup-form').addEventListener('submit', async (e) => {
   const submitBtn = e.submitter || document.querySelector('#signup-form button[type="submit"]');
 
   try {
-    const response = await apiPost('/auth/signup', { name, email, phone, password });
+    const response = await fetch('/auth/signup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, email, phone, password })
+    });
 
     let data;
     try { data = await response.json(); } catch(e) { data = null; }
@@ -349,16 +315,10 @@ document.getElementById('signup-form').addEventListener('submit', async (e) => {
       }
     } else {
       if (response.status === 429) {
-        alert('Too many signup attempts. Please wait before trying again.');
-        if (signupCooldownTimer) clearInterval(signupCooldownTimer);
-        // Use 60s cooldown by default
-        signupCooldownTimer = startButtonCooldown(submitBtn, 60, 'Retry');
+        alert('Too many signup attempts. Please wait a moment and try again.');
         return;
       }
-      let message = (data && data.message) || (response.status === 404 ? 'Signup endpoint not found. Configure apiBase or backend router.' : `HTTP ${response.status}`);
-      if (response.status === 500 && !__emailConfigured) {
-        message += '\n\nTip: Server email is not configured. Enable EMAIL_DEV_MODE=true on the server to receive a dev code without email, or configure MAIL_USER/MAIL_PASS.';
-      }
+      const message = (data && data.message) || `HTTP ${response.status}`;
       alert('Signup failed: ' + message);
     }
   } catch (error) {
@@ -379,7 +339,11 @@ document.getElementById('verification-form').addEventListener('submit', async (e
   }
 
   try {
-    const response = await apiPost('/auth/verify-code', { email: userEmail, code });
+    const response = await fetch('/auth/verify-code', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: userEmail, code })
+    });
 
     let data; try { data = await response.json(); } catch(e) { data = null; }
 
@@ -407,8 +371,11 @@ document.getElementById('verification-form').addEventListener('submit', async (e
 // Resend verification code
 async function resendCode() {
   try {
-    const resendBtn = document.querySelector('button[onclick="resendCode()"]');
-    const response = await apiPost('/auth/resend-code', { email: userEmail });
+    const response = await fetch('/auth/resend-code', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: userEmail })
+    });
 
     let data; try { data = await response.json(); } catch(e) { data = null; }
 
@@ -424,13 +391,10 @@ async function resendCode() {
       }
     } else {
       if (response.status === 429) {
-        alert('You are requesting codes too frequently. Please wait before trying again.');
-        if (resendCooldownTimer) clearInterval(resendCooldownTimer);
-        // 60s cooldown for resend as well
-        resendCooldownTimer = startButtonCooldown(resendBtn, 60, 'Resend Code');
+        alert('Too many requests. Please wait a moment and try again.');
         return;
       }
-      alert('Failed to resend code: ' + ((data && data.message) || (response.status === 404 ? 'Resend endpoint not found.' : `HTTP ${response.status}`)));
+      alert('Failed to resend code: ' + ((data && data.message) || `HTTP ${response.status}`));
     }
   } catch (error) {
     console.error('Resend error:', error);
@@ -490,7 +454,11 @@ function hideError() {
 function handleSignupGoogle(response) {
   const token = response.credential;
 
-  apiPost('/auth/google', { token })
+  fetch('/auth/google', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token })
+  })
   .then(res => res.json())
   .then(data => {
     if (data.success) {

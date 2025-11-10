@@ -90,8 +90,7 @@ exports.submitTicket = async (req, res) => {
             </div>
           </body>
           </html>
-        `
-      };
+        `;
 
       try {
         if (!process.env.RESEND_API_KEY) {
@@ -118,7 +117,6 @@ exports.submitTicket = async (req, res) => {
           console.error('Email error details:', emailError);
         }
       }
-
     };
 
     // Send email asynchronously (don't await - don't block response)
@@ -226,8 +224,7 @@ exports.replyToTicket = async (req, res) => {
           </div>
         </body>
         </html>
-      `
-    };
+      `;
 
     // Send with Resend
     try {

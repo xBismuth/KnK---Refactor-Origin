@@ -17,19 +17,29 @@ if (!process.env.RESEND_API_KEY) {
 
 // Get the from email address
 // Default to Resend's test domain (works without verification)
-// For production, set RESEND_FROM_EMAIL to a verified domain
+// For production with custom domain, set RESEND_FROM_EMAIL in .env
+// Example: RESEND_FROM_EMAIL=noreply@kusinanikatya.ph
 const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
 const FROM_NAME = process.env.RESEND_FROM_NAME || 'Kusina ni Katya';
+
+// Domain configuration
+const DOMAIN = 'kusinanikatya.up.railway.app';
 
 // Warn if using unverified domain (common mistake)
 if (process.env.RESEND_FROM_EMAIL && !process.env.RESEND_FROM_EMAIL.includes('resend.dev')) {
   console.warn('⚠️  Using custom domain email. Make sure it\'s verified at https://resend.com/domains');
+  console.warn(`   Current domain: ${DOMAIN}`);
+  console.warn('   Note: Railway domains cannot be used for email. Use a custom domain (e.g., kusinanikatya.ph)');
   console.warn('   For testing, you can use: onboarding@resend.dev (no verification needed)');
+} else {
+  console.log(`📧 Email domain: ${DOMAIN} (using onboarding@resend.dev for now)`);
+  console.log('💡 To use custom domain, verify it at https://resend.com/domains and set RESEND_FROM_EMAIL');
 }
 
 // Export Resend client and helper functions
 module.exports = { 
   resend,
   FROM_EMAIL,
-  FROM_NAME
+  FROM_NAME,
+  DOMAIN
 };

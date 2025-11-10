@@ -76,6 +76,7 @@ app.get('/api/health', (req, res) => {
     database: 'connected',
     paymongo: process.env.PAYMONGO_SECRET_KEY ? 'configured' : 'not configured',
     email: process.env.RESEND_API_KEY ? 'configured (Resend)' : 'not configured',
+    domain: 'kusinanikatya.up.railway.app',
     socketio: 'enabled'
   });
 });

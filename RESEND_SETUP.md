@@ -9,7 +9,9 @@ Create a `.env` file in the root directory of your project with the following co
 ```env
 # ==================== RESEND EMAIL API ====================
 RESEND_API_KEY=re_your_api_key_here
-RESEND_FROM_EMAIL=noreply@yourdomain.com
+# RESEND_FROM_EMAIL is optional - defaults to onboarding@resend.dev (works without verification)
+# Only set this if you have a verified domain in Resend
+# RESEND_FROM_EMAIL=onboarding@resend.dev
 RESEND_FROM_NAME=Kusina ni Katya
 
 # ==================== DATABASE CONFIGURATION ====================
@@ -27,15 +29,22 @@ PORT=3000
 NODE_ENV=development
 ```
 
-### Step 2: Verify Your Domain in Resend
+### Step 2: Email Domain Setup
 
+**For Testing (Recommended):**
+- ✅ **No setup needed!** The system defaults to `onboarding@resend.dev`
+- ✅ This works immediately without any domain verification
+- ✅ Just set your `RESEND_API_KEY` and you're ready to go
+
+**For Production:**
 1. Go to [Resend Dashboard](https://resend.com/domains)
 2. Add and verify your domain
-3. Update `RESEND_FROM_EMAIL` in `.env` to use your verified domain email
+3. Set `RESEND_FROM_EMAIL` in `.env` to use your verified domain email
+   ```env
+   RESEND_FROM_EMAIL=noreply@yourdomain.com
+   ```
 
-**Important:** 
-- For testing, you can use `onboarding@resend.dev` (Resend's test domain)
-- For production, you must use a verified domain email
+**Note:** If you don't set `RESEND_FROM_EMAIL`, it will automatically use `onboarding@resend.dev` which works perfectly for testing and development.
 
 ### Step 3: Test Email Sending
 

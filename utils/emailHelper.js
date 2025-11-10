@@ -44,6 +44,13 @@ async function sendEmailWithResend(toEmail, subject, html, retryCount = 0) {
     });
 
     if (error) {
+      // Check for domain verification errors (don't retry these)
+      if (error.message && error.message.includes('domain is not verified')) {
+        console.error('❌ Domain verification error:', error.message);
+        console.error('💡 Solution: Use onboarding@resend.dev for testing, or verify your domain at https://resend.com/domains');
+        throw new Error('Email domain not verified. Use onboarding@resend.dev for testing or verify your domain.');
+      }
+      
       // Check if we should retry
       const isRetryable = error.statusCode >= 500 || error.statusCode === 429; // Server errors or rate limit
       

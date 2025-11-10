@@ -23,7 +23,9 @@ const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
 const FROM_NAME = process.env.RESEND_FROM_NAME || 'Kusina ni Katya';
 
 // Domain configuration
-const DOMAIN = 'kusinanikatya.up.railway.app';
+// Note: Railway domain is for hosting only, NOT for email
+// Email domain (kusinanikatya.ph) must be verified separately in Resend
+const DOMAIN = 'kusinanikatya.up.railway.app'; // Application hosting domain
 
 // Domain verification status
 if (process.env.RESEND_FROM_EMAIL && !process.env.RESEND_FROM_EMAIL.includes('resend.dev')) {

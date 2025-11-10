@@ -1,5 +1,5 @@
 // ==================== EMAIL HELPER FUNCTIONS ====================
-const { emailTransporter } = require('../config/email');
+const { emailTransporter, createFreshTransport } = require('../config/email');
 
 // Send verification email
 async function sendVerificationEmail(toEmail, code, userName = 'Valued Customer') {
@@ -68,19 +68,34 @@ async function sendVerificationEmail(toEmail, code, userName = 'Valued Customer'
     let lastErr;
     for (let i = 1; i <= attempts; i++) {
       try {
-        const info = await emailTransporter.sendMail(mailOptions);
+        // Use fresh transport for each attempt to avoid connection timeout issues
+        const transporter = i === 1 ? emailTransporter : createFreshTransport();
+        
+        const info = await transporter.sendMail(mailOptions);
         console.log(`✅ Verification email sent to ${toEmail}:`, info.messageId);
+        
+        // Close fresh transport if we created one
+        if (i > 1) {
+          transporter.close();
+        }
+        
         return { success: true, messageId: info.messageId };
       } catch (error) {
         lastErr = error;
-        console.warn(`📧 Send attempt ${i}/${attempts} failed for ${toEmail}: ${error.message}`);
-        // Faster retry: 200ms, 400ms, 800ms (reduced from 500ms, 1000ms, 2000ms)
+        const errorMsg = error.message || error.code || 'Unknown error';
+        console.warn(`📧 Send attempt ${i}/${attempts} failed for ${toEmail}: ${errorMsg}`);
+        
+        // Exponential backoff with longer delays for connection issues
         if (i < attempts) {
-          await new Promise(r => setTimeout(r, 200 * Math.pow(2, i - 1)));
+          const delay = errorMsg.includes('timeout') || errorMsg.includes('ECONNRESET') 
+            ? 2000 * i // Longer delay for connection issues: 2s, 4s, 6s
+            : 1000 * i; // Standard delay: 1s, 2s, 3s
+          console.log(`   Retrying in ${delay}ms...`);
+          await new Promise(r => setTimeout(r, delay));
         }
       }
     }
-    console.error(`❌ Error sending email to ${toEmail} after ${attempts} retries:`, lastErr?.message);
+    console.error(`❌ Error sending email to ${toEmail} after ${attempts} retries:`, lastErr?.message || lastErr?.code);
     throw lastErr;
   };
   return sendWithRetry();
@@ -152,16 +167,34 @@ async function sendLoginVerificationEmail(toEmail, code, userName = 'Valued Cust
     let lastErr;
     for (let i = 1; i <= attempts; i++) {
       try {
-        const info = await emailTransporter.sendMail(mailOptions);
-        console.log('✅ Login verification email sent:', info.messageId);
+        // Use fresh transport for each attempt to avoid connection timeout issues
+        const transporter = i === 1 ? emailTransporter : createFreshTransport();
+        
+        const info = await transporter.sendMail(mailOptions);
+        console.log(`✅ Login verification email sent to ${toEmail}:`, info.messageId);
+        
+        // Close fresh transport if we created one
+        if (i > 1) {
+          transporter.close();
+        }
+        
         return { success: true, messageId: info.messageId };
       } catch (error) {
         lastErr = error;
-        console.warn(`📧 Login email attempt ${i} failed: ${error.message}`);
-        await new Promise(r => setTimeout(r, 500 * Math.pow(2, i - 1)));
+        const errorMsg = error.message || error.code || 'Unknown error';
+        console.warn(`📧 Login email attempt ${i}/${attempts} failed for ${toEmail}: ${errorMsg}`);
+        
+        // Exponential backoff with longer delays for connection issues
+        if (i < attempts) {
+          const delay = errorMsg.includes('timeout') || errorMsg.includes('ECONNRESET') 
+            ? 2000 * i // Longer delay for connection issues: 2s, 4s, 6s
+            : 1000 * i; // Standard delay: 1s, 2s, 3s
+          console.log(`   Retrying in ${delay}ms...`);
+          await new Promise(r => setTimeout(r, delay));
+        }
       }
     }
-    console.error('❌ Error sending login email after retries:', lastErr?.message);
+    console.error(`❌ Error sending login email to ${toEmail} after ${attempts} retries:`, lastErr?.message || lastErr?.code);
     throw lastErr;
   };
   return sendWithRetry();
@@ -233,16 +266,34 @@ async function sendPasswordResetEmail(toEmail, code, userName = 'Valued Customer
     let lastErr;
     for (let i = 1; i <= attempts; i++) {
       try {
-        const info = await emailTransporter.sendMail(mailOptions);
-        console.log('✅ Password reset email sent:', info.messageId);
+        // Use fresh transport for each attempt to avoid connection timeout issues
+        const transporter = i === 1 ? emailTransporter : createFreshTransport();
+        
+        const info = await transporter.sendMail(mailOptions);
+        console.log(`✅ Password reset email sent to ${toEmail}:`, info.messageId);
+        
+        // Close fresh transport if we created one
+        if (i > 1) {
+          transporter.close();
+        }
+        
         return { success: true, messageId: info.messageId };
       } catch (error) {
         lastErr = error;
-        console.warn(`📧 Reset email attempt ${i} failed: ${error.message}`);
-        await new Promise(r => setTimeout(r, 500 * Math.pow(2, i - 1)));
+        const errorMsg = error.message || error.code || 'Unknown error';
+        console.warn(`📧 Reset email attempt ${i}/${attempts} failed for ${toEmail}: ${errorMsg}`);
+        
+        // Exponential backoff with longer delays for connection issues
+        if (i < attempts) {
+          const delay = errorMsg.includes('timeout') || errorMsg.includes('ECONNRESET') 
+            ? 2000 * i // Longer delay for connection issues: 2s, 4s, 6s
+            : 1000 * i; // Standard delay: 1s, 2s, 3s
+          console.log(`   Retrying in ${delay}ms...`);
+          await new Promise(r => setTimeout(r, delay));
+        }
       }
     }
-    console.error('❌ Error sending password reset email after retries:', lastErr?.message);
+    console.error(`❌ Error sending password reset email to ${toEmail} after ${attempts} retries:`, lastErr?.message || lastErr?.code);
     throw lastErr;
   };
   return sendWithRetry();
@@ -322,19 +373,34 @@ async function sendContactNotification(data) {
     let lastErr;
     for (let i = 1; i <= attempts; i++) {
       try {
-        const info = await emailTransporter.sendMail(mailOptions);
-        console.log('✅ Contact notification sent:', info.messageId);
+        // Use fresh transport for each attempt to avoid connection timeout issues
+        const transporter = i === 1 ? emailTransporter : createFreshTransport();
+        
+        const info = await transporter.sendMail(mailOptions);
+        console.log(`✅ Contact notification sent to ${data.email}:`, info.messageId);
+        
+        // Close fresh transport if we created one
+        if (i > 1) {
+          transporter.close();
+        }
+        
         return { success: true, messageId: info.messageId };
       } catch (error) {
         lastErr = error;
-        console.warn(`📧 Contact notification attempt ${i} failed: ${error.message}`);
-        // Exponential backoff: 500ms, 1000ms, 2000ms
+        const errorMsg = error.message || error.code || 'Unknown error';
+        console.warn(`📧 Contact notification attempt ${i}/${attempts} failed: ${errorMsg}`);
+        
+        // Exponential backoff with longer delays for connection issues
         if (i < attempts) {
-          await new Promise(r => setTimeout(r, 500 * Math.pow(2, i - 1)));
+          const delay = errorMsg.includes('timeout') || errorMsg.includes('ECONNRESET') 
+            ? 2000 * i // Longer delay for connection issues: 2s, 4s, 6s
+            : 1000 * i; // Standard delay: 1s, 2s, 3s
+          console.log(`   Retrying in ${delay}ms...`);
+          await new Promise(r => setTimeout(r, delay));
         }
       }
     }
-    console.error('❌ Error sending contact notification after retries:', lastErr?.message);
+    console.error(`❌ Error sending contact notification after ${attempts} retries:`, lastErr?.message || lastErr?.code);
     throw lastErr;
   };
   return sendWithRetry();

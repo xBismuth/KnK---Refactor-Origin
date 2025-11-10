@@ -3,29 +3,34 @@ const nodemailer = require('nodemailer');
 require('dotenv').config();
 
 const SMTP_HOST = process.env.SMTP_HOST || 'smtp.gmail.com';
-const SMTP_PORT = parseInt(process.env.SMTP_PORT || '465', 10);
+// Use port 587 (STARTTLS) by default - more reliable in cloud environments than 465 (SSL)
+const SMTP_PORT = parseInt(process.env.SMTP_PORT || '587', 10);
 const SMTP_SECURE = process.env.SMTP_SECURE
   ? process.env.SMTP_SECURE.toLowerCase() === 'true'
-  : SMTP_PORT === 465;
+  : SMTP_PORT === 465; // Only secure for port 465
 
-const emailTransporter = nodemailer.createTransport({
+// Create base transport config
+const createTransportConfig = () => ({
   host: SMTP_HOST,
   port: SMTP_PORT,
-  secure: SMTP_SECURE,
+  secure: SMTP_SECURE, // false for 587 (STARTTLS), true for 465 (SSL)
   auth: {
     user: process.env.MAIL_USER,
     pass: process.env.MAIL_PASS
   },
-  // Enable connection pooling for faster email delivery
+  // Disable pooling to avoid connection timeout issues
+  // Each email gets a fresh connection
   pool: process.env.SMTP_POOL
     ? process.env.SMTP_POOL.toLowerCase() === 'true'
-    : true, // Default to true for better performance
-  maxConnections: parseInt(process.env.SMTP_MAX_CONNECTIONS || '5', 10),
-  maxMessages: parseInt(process.env.SMTP_MAX_MESSAGES || '100', 10),
-  // Reduced timeouts for faster failure detection and retry
-  connectionTimeout: parseInt(process.env.SMTP_CONNECTION_TIMEOUT || '10000', 10), // 10s (reduced from 20s)
-  greetingTimeout: parseInt(process.env.SMTP_GREETING_TIMEOUT || '5000', 10), // 5s (reduced from 10s)
-  socketTimeout: parseInt(process.env.SMTP_SOCKET_TIMEOUT || '10000', 10), // 10s (reduced from 20s)
+    : false, // Default to false to avoid connection timeout issues
+  maxConnections: parseInt(process.env.SMTP_MAX_CONNECTIONS || '1', 10),
+  maxMessages: parseInt(process.env.SMTP_MAX_MESSAGES || '1', 10),
+  // Increased timeouts for cloud environments
+  connectionTimeout: parseInt(process.env.SMTP_CONNECTION_TIMEOUT || '30000', 10), // 30s for cloud
+  greetingTimeout: parseInt(process.env.SMTP_GREETING_TIMEOUT || '15000', 10), // 15s
+  socketTimeout: parseInt(process.env.SMTP_SOCKET_TIMEOUT || '30000', 10), // 30s
+  // Require TLS for port 587
+  requireTLS: SMTP_PORT === 587,
   tls: {
     rejectUnauthorized: process.env.SMTP_TLS_REJECT_UNAUTHORIZED
       ? process.env.SMTP_TLS_REJECT_UNAUTHORIZED.toLowerCase() === 'true'
@@ -33,8 +38,19 @@ const emailTransporter = nodemailer.createTransport({
   },
   logger: process.env.SMTP_DEBUG
     ? process.env.SMTP_DEBUG.toLowerCase() === 'true'
+    : false,
+  debug: process.env.SMTP_DEBUG
+    ? process.env.SMTP_DEBUG.toLowerCase() === 'true'
     : false
 });
+
+// Create main transporter
+const emailTransporter = nodemailer.createTransport(createTransportConfig());
+
+// Function to create a fresh transporter (for retries)
+const createFreshTransport = () => {
+  return nodemailer.createTransport(createTransportConfig());
+};
 
 // Verify email configuration (non-blocking, async)
 // This runs in the background and won't block server startup
@@ -58,4 +74,4 @@ const verifyEmailConfig = async () => {
 // Run verification asynchronously (non-blocking)
 verifyEmailConfig();
 
-module.exports = { emailTransporter };
+module.exports = { emailTransporter, createFreshTransport };

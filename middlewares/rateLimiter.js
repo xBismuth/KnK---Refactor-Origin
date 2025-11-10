@@ -2,8 +2,8 @@
 const rateLimit = require('express-rate-limit');
 
 const apiLimiter = rateLimit({
-  windowMs: 10 * 60 * 1000, // 10 minutes (reduced from 15)
-  max: 2000, // increased for smoother API experience
+  windowMs: 60 * 1000, // 1 minute (reduced for testing)
+  max: 10000, // MAXED OUT for rapid testing
   standardHeaders: true,
   legacyHeaders: false,
   message: 'Too many requests from this IP, please try again later.',
@@ -13,8 +13,8 @@ const apiLimiter = rateLimit({
 });
 
 const authLimiter = rateLimit({
-  windowMs: 5 * 60 * 1000, // 5 minutes (reduced from 10)
-  max: 50, // increased for smoother login experience
+  windowMs: 60 * 1000, // 1 minute (reduced for testing)
+  max: 1000, // MAXED OUT for rapid testing
   standardHeaders: true,
   legacyHeaders: false,
   message: 'Too many auth attempts, please try again later.',
@@ -27,8 +27,8 @@ const authLimiter = rateLimit({
 
 // More granular, route-specific limiters
 const signupLimiter = rateLimit({
-  windowMs: 30 * 60 * 1000, // 30 minutes (reduced from 1 hour)
-  max: 50, // increased from 20 for smoother signup flow
+  windowMs: 60 * 1000, // 1 minute (reduced for testing)
+  max: 1000, // MAXED OUT for rapid testing
   standardHeaders: true,
   legacyHeaders: false,
   message: 'Too many sign-up requests from this IP, please try again later.',
@@ -38,8 +38,8 @@ const signupLimiter = rateLimit({
 });
 
 const resendLimiter = rateLimit({
-  windowMs: 60 * 1000, // 1 minute
-  max: 10, // increased from 5 for smoother resend experience
+  windowMs: 10 * 1000, // 10 seconds (reduced for testing)
+  max: 1000, // MAXED OUT for rapid testing
   standardHeaders: true,
   legacyHeaders: false,
   message: 'Too many code resend requests, please wait a moment and try again.',

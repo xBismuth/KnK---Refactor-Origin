@@ -80,6 +80,21 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+// Email delivery status endpoint (admin only - for monitoring)
+app.get('/api/admin/email-status', (req, res) => {
+  if (process.env.NODE_ENV === 'development' || req.query.key === process.env.ADMIN_API_KEY) {
+    const { getAllEmailDeliveryStatuses } = require('./utils/emailHelper');
+    const statuses = getAllEmailDeliveryStatuses();
+    res.json({
+      success: true,
+      total: statuses.length,
+      emails: statuses
+    });
+  } else {
+    res.status(403).json({ success: false, message: 'Access denied' });
+  }
+});
+
 // Mount routes
 app.use('/auth', authRoutes);
 app.use('/api', orderRoutes);

@@ -2,8 +2,32 @@
 // Using Resend API for fast and reliable email delivery
 const { resend, FROM_EMAIL, FROM_NAME } = require('../config/email');
 
-// Helper function to send email with Resend
-async function sendEmailWithResend(toEmail, subject, html) {
+// Email delivery tracking (in-memory store - consider using Redis for production)
+const emailDeliveryStatus = new Map();
+
+// Retry configuration
+const RETRY_CONFIG = {
+  maxRetries: 3,
+  retryDelay: 1000, // 1 second base delay
+  backoffMultiplier: 2 // Exponential backoff
+};
+
+/**
+ * Sleep helper for retry delays
+ */
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+/**
+ * Enhanced email sending with retry logic and delivery tracking
+ * @param {string} toEmail - Recipient email address
+ * @param {string} subject - Email subject
+ * @param {string} html - HTML email content
+ * @param {number} retryCount - Current retry attempt (internal use)
+ * @returns {Promise<{success: boolean, messageId: string, attempts: number}>}
+ */
+async function sendEmailWithResend(toEmail, subject, html, retryCount = 0) {
   // Check if Resend API key is configured
   if (!process.env.RESEND_API_KEY) {
     const error = new Error('Resend API key not configured (RESEND_API_KEY missing)');
@@ -20,16 +44,71 @@ async function sendEmailWithResend(toEmail, subject, html) {
     });
 
     if (error) {
+      // Check if we should retry
+      const isRetryable = error.statusCode >= 500 || error.statusCode === 429; // Server errors or rate limit
+      
+      if (isRetryable && retryCount < RETRY_CONFIG.maxRetries) {
+        const delay = RETRY_CONFIG.retryDelay * Math.pow(RETRY_CONFIG.backoffMultiplier, retryCount);
+        console.warn(`⚠️ Email send failed (attempt ${retryCount + 1}/${RETRY_CONFIG.maxRetries}), retrying in ${delay}ms...`, error.message);
+        
+        await sleep(delay);
+        return await sendEmailWithResend(toEmail, subject, html, retryCount + 1);
+      }
+      
       console.error('❌ Resend API error:', error);
       throw new Error(error.message || 'Failed to send email via Resend');
     }
 
-    console.log(`✅ Email sent via Resend to ${toEmail}:`, data?.id);
-    return { success: true, messageId: data?.id };
+    // Track successful delivery
+    const deliveryInfo = {
+      messageId: data?.id,
+      toEmail,
+      subject,
+      sentAt: new Date().toISOString(),
+      attempts: retryCount + 1,
+      status: 'sent'
+    };
+    
+    emailDeliveryStatus.set(data?.id, deliveryInfo);
+    
+    console.log(`✅ Email sent via Resend to ${toEmail} (ID: ${data?.id}, attempts: ${retryCount + 1})`);
+    
+    return { 
+      success: true, 
+      messageId: data?.id,
+      attempts: retryCount + 1,
+      deliveryInfo
+    };
   } catch (error) {
-    console.error(`❌ Error sending email to ${toEmail}:`, error.message);
+    // Network errors or other exceptions - retry if possible
+    if (retryCount < RETRY_CONFIG.maxRetries && (error.code === 'ECONNRESET' || error.code === 'ETIMEDOUT')) {
+      const delay = RETRY_CONFIG.retryDelay * Math.pow(RETRY_CONFIG.backoffMultiplier, retryCount);
+      console.warn(`⚠️ Network error (attempt ${retryCount + 1}/${RETRY_CONFIG.maxRetries}), retrying in ${delay}ms...`, error.message);
+      
+      await sleep(delay);
+      return await sendEmailWithResend(toEmail, subject, html, retryCount + 1);
+    }
+    
+    console.error(`❌ Error sending email to ${toEmail} after ${retryCount + 1} attempts:`, error.message);
     throw error;
   }
+}
+
+/**
+ * Get email delivery status by message ID
+ * @param {string} messageId - Resend message ID
+ * @returns {object|null} Delivery status information
+ */
+function getEmailDeliveryStatus(messageId) {
+  return emailDeliveryStatus.get(messageId) || null;
+}
+
+/**
+ * Get all email delivery statuses (for debugging/monitoring)
+ * @returns {Array} Array of delivery status objects
+ */
+function getAllEmailDeliveryStatuses() {
+  return Array.from(emailDeliveryStatus.values());
 }
 
 // Send verification email
@@ -274,5 +353,7 @@ module.exports = {
   sendVerificationEmail,
   sendLoginVerificationEmail,
   sendPasswordResetEmail,
-  sendContactNotification
+  sendContactNotification,
+  getEmailDeliveryStatus,
+  getAllEmailDeliveryStatuses
 };

@@ -273,6 +273,27 @@ async function apiPost(path, body) {
 
 let userEmail = '';
 let codeExpiryTimer;
+let signupCooldownTimer = null;
+let resendCooldownTimer = null;
+
+function startButtonCooldown(buttonEl, seconds, baseText) {
+  if (!buttonEl) return;
+  let remaining = seconds;
+  buttonEl.disabled = true;
+  const originalText = buttonEl.textContent;
+  const tick = () => {
+    buttonEl.textContent = `${baseText} (${remaining}s)`;
+    remaining -= 1;
+    if (remaining < 0) {
+      clearInterval(timerId);
+      buttonEl.disabled = false;
+      buttonEl.textContent = originalText;
+    }
+  };
+  tick();
+  const timerId = setInterval(tick, 1000);
+  return timerId;
+}
 
 // Handle signup form submission
 document.getElementById('signup-form').addEventListener('submit', async (e) => {
@@ -282,6 +303,7 @@ document.getElementById('signup-form').addEventListener('submit', async (e) => {
   const email = document.getElementById('signup-email').value;
   const phone = document.getElementById('signup-phone').value;
   const password = document.getElementById('signup-password').value;
+  const submitBtn = e.submitter || document.querySelector('#signup-form button[type="submit"]');
 
   try {
     const response = await apiPost('/auth/signup', { name, email, phone, password });
@@ -300,6 +322,13 @@ document.getElementById('signup-form').addEventListener('submit', async (e) => {
         alert('Development Mode: Check console for verification code');
       }
     } else {
+      if (response.status === 429) {
+        alert('Too many signup attempts. Please wait before trying again.');
+        if (signupCooldownTimer) clearInterval(signupCooldownTimer);
+        // Use 60s cooldown by default
+        signupCooldownTimer = startButtonCooldown(submitBtn, 60, 'Retry');
+        return;
+      }
       const message = (data && data.message) || (response.status === 404 ? 'Signup endpoint not found. Configure apiBase or backend router.' : `HTTP ${response.status}`);
       alert('Signup failed: ' + message);
     }
@@ -349,6 +378,7 @@ document.getElementById('verification-form').addEventListener('submit', async (e
 // Resend verification code
 async function resendCode() {
   try {
+    const resendBtn = document.querySelector('button[onclick="resendCode()"]');
     const response = await apiPost('/auth/resend-code', { email: userEmail });
 
     let data; try { data = await response.json(); } catch(e) { data = null; }
@@ -364,6 +394,13 @@ async function resendCode() {
         console.log('🔑 New Development Code:', data.devCode);
       }
     } else {
+      if (response.status === 429) {
+        alert('You are requesting codes too frequently. Please wait before trying again.');
+        if (resendCooldownTimer) clearInterval(resendCooldownTimer);
+        // 60s cooldown for resend as well
+        resendCooldownTimer = startButtonCooldown(resendBtn, 60, 'Resend Code');
+        return;
+      }
       alert('Failed to resend code: ' + ((data && data.message) || (response.status === 404 ? 'Resend endpoint not found.' : `HTTP ${response.status}`)));
     }
   } catch (error) {

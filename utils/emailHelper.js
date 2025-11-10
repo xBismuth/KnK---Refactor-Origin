@@ -1,16 +1,9 @@
 // ==================== EMAIL HELPER FUNCTIONS ====================
-const { emailTransporter, createFreshTransport } = require('../config/email');
+const { sendEmail } = require('../config/email');
 
 // Send verification email
 async function sendVerificationEmail(toEmail, code, userName = 'Valued Customer') {
-  const mailOptions = {
-    from: {
-      name: 'Kusina ni Katya',
-      address: process.env.MAIL_USER
-    },
-    to: toEmail,
-    subject: 'Your Verification Code - Kusina ni Katya',
-    html: `
+  const html = `
       <!DOCTYPE html>
       <html>
       <head>
@@ -61,56 +54,19 @@ async function sendVerificationEmail(toEmail, code, userName = 'Valued Customer'
         </div>
       </body>
       </html>
-    `
-  };
+    `;
 
-  const sendWithRetry = async (attempts = 3) => {
-    let lastErr;
-    for (let i = 1; i <= attempts; i++) {
-      try {
-        // Use fresh transport for each attempt to avoid connection timeout issues
-        const transporter = i === 1 ? emailTransporter : createFreshTransport();
-        
-        const info = await transporter.sendMail(mailOptions);
-        console.log(`✅ Verification email sent to ${toEmail}:`, info.messageId);
-        
-        // Close fresh transport if we created one
-        if (i > 1) {
-          transporter.close();
-        }
-        
-        return { success: true, messageId: info.messageId };
-      } catch (error) {
-        lastErr = error;
-        const errorMsg = error.message || error.code || 'Unknown error';
-        console.warn(`📧 Send attempt ${i}/${attempts} failed for ${toEmail}: ${errorMsg}`);
-        
-        // Exponential backoff with longer delays for connection issues
-        if (i < attempts) {
-          const delay = errorMsg.includes('timeout') || errorMsg.includes('ECONNRESET') 
-            ? 2000 * i // Longer delay for connection issues: 2s, 4s, 6s
-            : 1000 * i; // Standard delay: 1s, 2s, 3s
-          console.log(`   Retrying in ${delay}ms...`);
-          await new Promise(r => setTimeout(r, delay));
-        }
-      }
-    }
-    console.error(`❌ Error sending email to ${toEmail} after ${attempts} retries:`, lastErr?.message || lastErr?.code);
-    throw lastErr;
-  };
-  return sendWithRetry();
+  try {
+    return await sendEmail(toEmail, 'Your Verification Code - Kusina ni Katya', html, 'Kusina ni Katya');
+  } catch (error) {
+    console.error(`❌ Error sending verification email to ${toEmail}:`, error.message);
+    throw error;
+  }
 }
 
 // Send login verification email
 async function sendLoginVerificationEmail(toEmail, code, userName = 'Valued Customer') {
-  const mailOptions = {
-    from: {
-      name: 'Kusina ni Katya',
-      address: process.env.MAIL_USER
-    },
-    to: toEmail,
-    subject: 'Login Verification Code - Kusina ni Katya',
-    html: `
+  const html = `
       <!DOCTYPE html>
       <html>
       <head>
@@ -160,56 +116,19 @@ async function sendLoginVerificationEmail(toEmail, code, userName = 'Valued Cust
         </div>
       </body>
       </html>
-    `
-  };
+    `;
 
-  const sendWithRetry = async (attempts = 3) => {
-    let lastErr;
-    for (let i = 1; i <= attempts; i++) {
-      try {
-        // Use fresh transport for each attempt to avoid connection timeout issues
-        const transporter = i === 1 ? emailTransporter : createFreshTransport();
-        
-        const info = await transporter.sendMail(mailOptions);
-        console.log(`✅ Login verification email sent to ${toEmail}:`, info.messageId);
-        
-        // Close fresh transport if we created one
-        if (i > 1) {
-          transporter.close();
-        }
-        
-        return { success: true, messageId: info.messageId };
-      } catch (error) {
-        lastErr = error;
-        const errorMsg = error.message || error.code || 'Unknown error';
-        console.warn(`📧 Login email attempt ${i}/${attempts} failed for ${toEmail}: ${errorMsg}`);
-        
-        // Exponential backoff with longer delays for connection issues
-        if (i < attempts) {
-          const delay = errorMsg.includes('timeout') || errorMsg.includes('ECONNRESET') 
-            ? 2000 * i // Longer delay for connection issues: 2s, 4s, 6s
-            : 1000 * i; // Standard delay: 1s, 2s, 3s
-          console.log(`   Retrying in ${delay}ms...`);
-          await new Promise(r => setTimeout(r, delay));
-        }
-      }
-    }
-    console.error(`❌ Error sending login email to ${toEmail} after ${attempts} retries:`, lastErr?.message || lastErr?.code);
-    throw lastErr;
-  };
-  return sendWithRetry();
+  try {
+    return await sendEmail(toEmail, 'Login Verification Code - Kusina ni Katya', html, 'Kusina ni Katya');
+  } catch (error) {
+    console.error(`❌ Error sending login verification email to ${toEmail}:`, error.message);
+    throw error;
+  }
 }
 
 // Send password reset email
 async function sendPasswordResetEmail(toEmail, code, userName = 'Valued Customer') {
-  const mailOptions = {
-    from: {
-      name: 'Kusina ni Katya',
-      address: process.env.MAIL_USER
-    },
-    to: toEmail,
-    subject: 'Password Reset Code - Kusina ni Katya',
-    html: `
+  const html = `
       <!DOCTYPE html>
       <html>
       <head>
@@ -259,59 +178,21 @@ async function sendPasswordResetEmail(toEmail, code, userName = 'Valued Customer
         </div>
       </body>
       </html>
-    `
-  };
+    `;
 
-  const sendWithRetry = async (attempts = 3) => {
-    let lastErr;
-    for (let i = 1; i <= attempts; i++) {
-      try {
-        // Use fresh transport for each attempt to avoid connection timeout issues
-        const transporter = i === 1 ? emailTransporter : createFreshTransport();
-        
-        const info = await transporter.sendMail(mailOptions);
-        console.log(`✅ Password reset email sent to ${toEmail}:`, info.messageId);
-        
-        // Close fresh transport if we created one
-        if (i > 1) {
-          transporter.close();
-        }
-        
-        return { success: true, messageId: info.messageId };
-      } catch (error) {
-        lastErr = error;
-        const errorMsg = error.message || error.code || 'Unknown error';
-        console.warn(`📧 Reset email attempt ${i}/${attempts} failed for ${toEmail}: ${errorMsg}`);
-        
-        // Exponential backoff with longer delays for connection issues
-        if (i < attempts) {
-          const delay = errorMsg.includes('timeout') || errorMsg.includes('ECONNRESET') 
-            ? 2000 * i // Longer delay for connection issues: 2s, 4s, 6s
-            : 1000 * i; // Standard delay: 1s, 2s, 3s
-          console.log(`   Retrying in ${delay}ms...`);
-          await new Promise(r => setTimeout(r, delay));
-        }
-      }
-    }
-    console.error(`❌ Error sending password reset email to ${toEmail} after ${attempts} retries:`, lastErr?.message || lastErr?.code);
-    throw lastErr;
-  };
-  return sendWithRetry();
+  try {
+    return await sendEmail(toEmail, 'Password Reset Code - Kusina ni Katya', html, 'Kusina ni Katya');
+  } catch (error) {
+    console.error(`❌ Error sending password reset email to ${toEmail}:`, error.message);
+    throw error;
+  }
 }
 
 // Send contact form notification to admin
 async function sendContactNotification(data) {
   const { name, email, phone, subject, message } = data;
 
-  const mailOptions = {
-    from: {
-      name: 'Kusina ni Katya Contact Form',
-      address: process.env.MAIL_USER
-    },
-    to: process.env.MAIL_USER, // Send to yourself (admin)
-    replyTo: email,
-    subject: `New Contact Form: ${subject}`,
-    html: `
+  const html = `
       <!DOCTYPE html>
       <html>
       <head>
@@ -366,44 +247,18 @@ async function sendContactNotification(data) {
         </div>
       </body>
       </html>
-    `
-  };
+    `;
 
-  const sendWithRetry = async (attempts = 3) => {
-    let lastErr;
-    for (let i = 1; i <= attempts; i++) {
-      try {
-        // Use fresh transport for each attempt to avoid connection timeout issues
-        const transporter = i === 1 ? emailTransporter : createFreshTransport();
-        
-        const info = await transporter.sendMail(mailOptions);
-        console.log(`✅ Contact notification sent to ${data.email}:`, info.messageId);
-        
-        // Close fresh transport if we created one
-        if (i > 1) {
-          transporter.close();
-        }
-        
-        return { success: true, messageId: info.messageId };
-      } catch (error) {
-        lastErr = error;
-        const errorMsg = error.message || error.code || 'Unknown error';
-        console.warn(`📧 Contact notification attempt ${i}/${attempts} failed: ${errorMsg}`);
-        
-        // Exponential backoff with longer delays for connection issues
-        if (i < attempts) {
-          const delay = errorMsg.includes('timeout') || errorMsg.includes('ECONNRESET') 
-            ? 2000 * i // Longer delay for connection issues: 2s, 4s, 6s
-            : 1000 * i; // Standard delay: 1s, 2s, 3s
-          console.log(`   Retrying in ${delay}ms...`);
-          await new Promise(r => setTimeout(r, delay));
-        }
-      }
+  try {
+    const adminEmail = process.env.MAIL_USER || process.env.RESEND_FROM_EMAIL;
+    if (!adminEmail) {
+      throw new Error('Admin email not configured');
     }
-    console.error(`❌ Error sending contact notification after ${attempts} retries:`, lastErr?.message || lastErr?.code);
-    throw lastErr;
-  };
-  return sendWithRetry();
+    return await sendEmail(adminEmail, `New Contact Form: ${subject}`, html, 'Kusina ni Katya Contact Form');
+  } catch (error) {
+    console.error(`❌ Error sending contact notification:`, error.message);
+    throw error;
+  }
 }
 
 module.exports = {

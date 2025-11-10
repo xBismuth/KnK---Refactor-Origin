@@ -1,6 +1,11 @@
 // ==================== EMAIL SERVICE ====================
 const nodemailer = require('nodemailer');
+const axios = require('axios');
 require('dotenv').config();
+
+// Email provider: 'resend' (API) or 'smtp' (nodemailer)
+const EMAIL_PROVIDER = process.env.EMAIL_PROVIDER || 'smtp'; // 'resend' or 'smtp'
+const RESEND_API_KEY = process.env.RESEND_API_KEY;
 
 const SMTP_HOST = process.env.SMTP_HOST || 'smtp.gmail.com';
 // Use port 587 (STARTTLS) by default - more reliable in cloud environments than 465 (SSL)
@@ -72,6 +77,83 @@ const verifyEmailConfig = async () => {
 };
 
 // Run verification asynchronously (non-blocking)
-verifyEmailConfig();
+if (EMAIL_PROVIDER === 'smtp') {
+  verifyEmailConfig();
+}
 
-module.exports = { emailTransporter, createFreshTransport };
+// ==================== RESEND API EMAIL SERVICE ====================
+// Resend is a modern email API service - more reliable than SMTP in cloud environments
+// Free tier: 3,000 emails/month
+// Sign up at: https://resend.com
+const sendEmailViaResend = async (to, subject, html, fromName = 'Kusina ni Katya') => {
+  if (!RESEND_API_KEY) {
+    throw new Error('RESEND_API_KEY is not configured');
+  }
+
+  const fromEmail = process.env.RESEND_FROM_EMAIL || process.env.MAIL_USER;
+  if (!fromEmail) {
+    throw new Error('RESEND_FROM_EMAIL or MAIL_USER is not configured');
+  }
+
+  try {
+    const response = await axios.post(
+      'https://api.resend.com/emails',
+      {
+        from: `${fromName} <${fromEmail}>`,
+        to: [to],
+        subject: subject,
+        html: html
+      },
+      {
+        headers: {
+          'Authorization': `Bearer ${RESEND_API_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        timeout: 10000 // 10 second timeout
+      }
+    );
+
+    console.log(`✅ Email sent via Resend to ${to}:`, response.data.id);
+    return { success: true, messageId: response.data.id };
+  } catch (error) {
+    const errorMsg = error.response?.data?.message || error.message || 'Unknown error';
+    console.error(`❌ Resend API error for ${to}:`, errorMsg);
+    throw new Error(`Resend API error: ${errorMsg}`);
+  }
+};
+
+// ==================== UNIFIED EMAIL SENDER ====================
+// This function automatically uses Resend API if configured, otherwise falls back to SMTP
+const sendEmail = async (to, subject, html, fromName = 'Kusina ni Katya') => {
+  if (EMAIL_PROVIDER === 'resend' && RESEND_API_KEY) {
+    return await sendEmailViaResend(to, subject, html, fromName);
+  } else {
+    // Fallback to SMTP
+    const mailOptions = {
+      from: {
+        name: fromName,
+        address: process.env.MAIL_USER
+      },
+      to: to,
+      subject: subject,
+      html: html
+    };
+
+    try {
+      const info = await emailTransporter.sendMail(mailOptions);
+      console.log(`✅ Email sent via SMTP to ${to}:`, info.messageId);
+      return { success: true, messageId: info.messageId };
+    } catch (error) {
+      console.error(`❌ SMTP error for ${to}:`, error.message);
+      throw error;
+    }
+  }
+};
+
+module.exports = { 
+  emailTransporter, 
+  createFreshTransport,
+  sendEmail,
+  EMAIL_PROVIDER,
+  RESEND_API_KEY
+};

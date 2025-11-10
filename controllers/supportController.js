@@ -1,6 +1,5 @@
 // ==================== SUPPORT CONTROLLER ====================
 const db = require('../config/db');
-const { resend, FROM_EMAIL, FROM_NAME } = require('../config/email');
 const { sendContactNotification } = require('../utils/emailHelper');
 
 // Submit support ticket
@@ -42,8 +41,8 @@ exports.submitTicket = async (req, res) => {
     };
     sendAdminNotification().catch(() => {});
 
-    // Send confirmation email (non-blocking with retry logic)
-    const sendEmailWithRetry = async () => {
+    // Send confirmation email (non-blocking with retry logic via emailHelper)
+    const sendConfirmationEmail = async () => {
       const html = `
           <!DOCTYPE html>
           <html>
@@ -93,22 +92,9 @@ exports.submitTicket = async (req, res) => {
         `;
 
       try {
-        if (!process.env.RESEND_API_KEY) {
-          throw new Error('Resend API key not configured');
-        }
-        
-        const { data, error } = await resend.emails.send({
-          from: `${FROM_NAME} <${FROM_EMAIL}>`,
-          to: [email],
-          subject: 'We received your message - Kusina ni Katya',
-          html: html
-        });
-
-        if (error) {
-          throw new Error(error.message || 'Failed to send email via Resend');
-        }
-
-        console.log('✅ Confirmation email sent via Resend:', data?.id);
+        // Use the emailHelper function which includes retry logic
+        const { sendEmailWithResend } = require('../utils/emailHelper');
+        await sendEmailWithResend(email, 'We received your message - Kusina ni Katya', html);
       } catch (emailError) {
         // Don't throw - email failure shouldn't block the response
         console.error('⚠️ Failed to send confirmation email:', emailError.message);
@@ -120,7 +106,7 @@ exports.submitTicket = async (req, res) => {
     };
 
     // Send email asynchronously (don't await - don't block response)
-    sendEmailWithRetry().catch(err => {
+    sendConfirmationEmail().catch(err => {
       console.error('Email sending process error:', err.message);
     });
 
@@ -226,28 +212,9 @@ exports.replyToTicket = async (req, res) => {
         </html>
       `;
 
-    // Send with Resend
-    try {
-      if (!process.env.RESEND_API_KEY) {
-        throw new Error('Resend API key not configured');
-      }
-
-      const { data, error } = await resend.emails.send({
-        from: `${FROM_NAME} <${FROM_EMAIL}>`,
-        to: [email],
-        subject: `Re: ${subject}`,
-        html: html
-      });
-
-      if (error) {
-        throw new Error(error.message || 'Failed to send email via Resend');
-      }
-
-      console.log('✅ Support reply email sent via Resend:', data?.id);
-    } catch (emailError) {
-      console.error('❌ Failed to send support reply email:', emailError.message);
-      throw emailError;
-    }
+    // Send with Resend using emailHelper (includes retry logic)
+    const { sendEmailWithResend } = require('../utils/emailHelper');
+    await sendEmailWithResend(email, `Re: ${subject}`, html);
 
     await db.query(
       'UPDATE support_tickets SET status = ?, replied_at = NOW() WHERE id = ?',

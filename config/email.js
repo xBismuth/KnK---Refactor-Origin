@@ -3,8 +3,8 @@
 const { Resend } = require('resend');
 require('dotenv').config();
 
-// Initialize Resend client
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Initialize Resend client (only if API key exists)
+const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
 // Validate Resend API key
 if (!process.env.RESEND_API_KEY) {

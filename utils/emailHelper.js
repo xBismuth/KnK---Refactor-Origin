@@ -35,6 +35,13 @@ async function sendEmailWithResend(toEmail, subject, html, retryCount = 0) {
     throw error;
   }
 
+  // Check if resend client is initialized
+  if (!resend) {
+    const error = new Error('Resend client not initialized. Check RESEND_API_KEY configuration.');
+    console.error(`❌ ${error.message}`);
+    throw error;
+  }
+
   try {
     const { data, error } = await resend.emails.send({
       from: `${FROM_NAME} <${FROM_EMAIL}>`,
@@ -357,6 +364,7 @@ async function sendContactNotification(data) {
 }
 
 module.exports = {
+  sendEmailWithResend,
   sendVerificationEmail,
   sendLoginVerificationEmail,
   sendPasswordResetEmail,

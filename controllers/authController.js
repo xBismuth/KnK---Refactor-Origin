@@ -318,7 +318,13 @@ exports.sendLoginCode = async (req, res) => {
       userRole: user.role
     });
 
-    await sendLoginVerificationEmail(email, verificationCode, user.name);
+    try {
+      await sendLoginVerificationEmail(email, verificationCode, user.name);
+    } catch (emailError) {
+      console.error('❌ Failed to send login verification email:', emailError.message);
+      // Don't block login - user can request code again
+      throw emailError; // Re-throw to handle in outer catch
+    }
 
     res.json({
       success: true,

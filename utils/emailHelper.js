@@ -358,8 +358,9 @@ async function sendContactNotification(data) {
     </html>
   `;
 
-  // Send to admin email (use RESEND_FROM_EMAIL or MAIL_USER)
-  const adminEmail = process.env.RESEND_FROM_EMAIL || process.env.MAIL_USER || FROM_EMAIL;
+  // Send to admin email (use RESEND_FROM_EMAIL or FROM_EMAIL - don't use MAIL_USER as it may be unverified)
+  // For admin notifications, send to the same verified email address
+  const adminEmail = process.env.RESEND_FROM_EMAIL || FROM_EMAIL;
   return await sendEmailWithResend(adminEmail, `New Contact Form: ${subject}`, html);
 }
 

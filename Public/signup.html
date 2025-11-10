@@ -441,35 +441,94 @@ document.getElementById('verification-form').addEventListener('submit', async (e
 
 // Resend verification code
 async function resendCode() {
+  const resendBtn = document.querySelector('button[onclick="resendCode()"]');
+  const originalText = resendBtn ? resendBtn.textContent : 'Resend Code';
+  
   try {
+    // Disable button and show loading state
+    if (resendBtn) {
+      resendBtn.disabled = true;
+      resendBtn.textContent = 'Sending...';
+    }
+    
+    console.log('📤 Resending verification code to:', userEmail);
+    
     const response = await apiFetch('/auth/resend-code', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: userEmail })
     });
 
-    let data; try { data = await response.json(); } catch(e) { data = null; }
+    console.log('📥 Resend response status:', response.status, response.statusText);
+
+    let data; 
+    try { 
+      data = await response.json(); 
+      console.log('📦 Resend response data:', data);
+    } catch(e) { 
+      console.error('❌ Failed to parse JSON response:', e);
+      data = null; 
+    }
 
     if (response.ok && data && data.success) {
-      alert('New verification code sent to your email!');
+      console.log('✅ Resend successful!');
+      
+      // Show success message
+      alert('✅ New verification code sent to your email! Please check your inbox.');
+      
+      // Clear code input and reset timer
       document.getElementById('verification-code').value = '';
       clearInterval(codeExpiryTimer);
       startCodeTimer();
+      hideError();
       
-      // Show dev code in console for testing
+      // Show dev code in console/alert for testing
       if (data && data.devCode) {
         console.log('🔑 New Development Code:', data.devCode);
+        if (process.env.NODE_ENV === 'development' || localStorage.getItem('devMode') === 'true') {
+          alert(`Development Mode: Your new verification code is ${data.devCode}`);
+        }
       }
     } else {
+      console.error('❌ Resend failed:', {
+        status: response.status,
+        statusText: response.statusText,
+        data: data
+      });
+      
       if (response.status === 429) {
-        alert('Too many requests. Please wait a moment and try again.');
+        alert('⏳ Too many requests. Please wait a moment and try again.');
         return;
       }
-      alert('Failed to resend code: ' + ((data && data.message) || `HTTP ${response.status}`));
+      
+      if (response.status === 404) {
+        alert('❌ Resend endpoint not found. Please check your connection.');
+        console.error('Endpoint URL:', getApiBase() + '/auth/resend-code');
+        return;
+      }
+      
+      const message = (data && data.message) || `HTTP ${response.status}: ${response.statusText}`;
+      alert('❌ Failed to resend code: ' + message);
     }
   } catch (error) {
-    console.error('Resend error:', error);
-    alert('Failed to resend code');
+    console.error('❌ Resend error:', error);
+    console.error('Error details:', {
+      name: error.name,
+      message: error.message,
+      stack: error.stack
+    });
+    
+    if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+      alert('❌ Network error: Could not connect to server. Please check your internet connection.');
+    } else {
+      alert('❌ Failed to resend code: ' + error.message);
+    }
+  } finally {
+    // Re-enable button
+    if (resendBtn) {
+      resendBtn.disabled = false;
+      resendBtn.textContent = originalText;
+    }
   }
 }
 

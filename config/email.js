@@ -16,14 +16,16 @@ const emailTransporter = nodemailer.createTransport({
     user: process.env.MAIL_USER,
     pass: process.env.MAIL_PASS
   },
+  // Enable connection pooling for faster email delivery
   pool: process.env.SMTP_POOL
     ? process.env.SMTP_POOL.toLowerCase() === 'true'
-    : false,
-  maxConnections: parseInt(process.env.SMTP_MAX_CONNECTIONS || '1', 10),
-  maxMessages: parseInt(process.env.SMTP_MAX_MESSAGES || '5', 10),
-  connectionTimeout: parseInt(process.env.SMTP_CONNECTION_TIMEOUT || '20000', 10),
-  greetingTimeout: parseInt(process.env.SMTP_GREETING_TIMEOUT || '10000', 10),
-  socketTimeout: parseInt(process.env.SMTP_SOCKET_TIMEOUT || '20000', 10),
+    : true, // Default to true for better performance
+  maxConnections: parseInt(process.env.SMTP_MAX_CONNECTIONS || '5', 10),
+  maxMessages: parseInt(process.env.SMTP_MAX_MESSAGES || '100', 10),
+  // Reduced timeouts for faster failure detection and retry
+  connectionTimeout: parseInt(process.env.SMTP_CONNECTION_TIMEOUT || '10000', 10), // 10s (reduced from 20s)
+  greetingTimeout: parseInt(process.env.SMTP_GREETING_TIMEOUT || '5000', 10), // 5s (reduced from 10s)
+  socketTimeout: parseInt(process.env.SMTP_SOCKET_TIMEOUT || '10000', 10), // 10s (reduced from 20s)
   tls: {
     rejectUnauthorized: process.env.SMTP_TLS_REJECT_UNAUTHORIZED
       ? process.env.SMTP_TLS_REJECT_UNAUTHORIZED.toLowerCase() === 'true'

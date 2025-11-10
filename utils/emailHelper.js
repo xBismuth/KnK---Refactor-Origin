@@ -69,16 +69,18 @@ async function sendVerificationEmail(toEmail, code, userName = 'Valued Customer'
     for (let i = 1; i <= attempts; i++) {
       try {
         const info = await emailTransporter.sendMail(mailOptions);
-        console.log('✅ Verification email sent:', info.messageId);
+        console.log(`✅ Verification email sent to ${toEmail}:`, info.messageId);
         return { success: true, messageId: info.messageId };
       } catch (error) {
         lastErr = error;
-        console.warn(`📧 Send attempt ${i} failed: ${error.message}`);
-        // Exponential backoff: 500ms, 1000ms, 2000ms
-        await new Promise(r => setTimeout(r, 500 * Math.pow(2, i - 1)));
+        console.warn(`📧 Send attempt ${i}/${attempts} failed for ${toEmail}: ${error.message}`);
+        // Faster retry: 200ms, 400ms, 800ms (reduced from 500ms, 1000ms, 2000ms)
+        if (i < attempts) {
+          await new Promise(r => setTimeout(r, 200 * Math.pow(2, i - 1)));
+        }
       }
     }
-    console.error('❌ Error sending email after retries:', lastErr?.message);
+    console.error(`❌ Error sending email to ${toEmail} after ${attempts} retries:`, lastErr?.message);
     throw lastErr;
   };
   return sendWithRetry();

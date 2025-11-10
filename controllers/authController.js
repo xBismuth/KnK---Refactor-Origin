@@ -59,42 +59,24 @@ exports.signup = async (req, res) => {
       }
     });
 
-    try {
-      await sendVerificationEmail(email, verificationCode, name);
-      console.log(`✅ Verification code sent to ${email}`);
+    // Send email immediately (don't wait for response to be sent)
+    // This allows the API to respond quickly while email is being sent
+    sendVerificationEmail(email, verificationCode, name)
+      .then(() => {
+        console.log(`✅ Verification code sent to ${email}`);
+      })
+      .catch((emailError) => {
+        console.error('📧 Email sending failed after retries:', emailError.message);
+        // Email failed but code is still stored, user can resend
+      });
 
-      res.json({ 
-        success: true,
-        message: 'Verification code sent to your email',
-        email: email,
-        devCode: process.env.NODE_ENV === 'development' ? verificationCode : undefined
-      });
-    } catch (emailError) {
-      console.error('📧 Email sending failed after retries:', emailError.message);
-      
-      // Always allow signup to proceed even if email fails
-      // The code is stored, user can still verify if they have the code
-      // In production, this should rarely happen due to retry logic
-      if (process.env.NODE_ENV === 'development' || process.env.EMAIL_DEV_MODE === 'true') {
-        console.log('⚠️ Development mode: Returning code despite email failure');
-        return res.json({ 
-          success: true,
-          message: 'Verification code generated (email not sent)',
-          email: email,
-          devCode: verificationCode
-        });
-      }
-      
-      // In production, still allow signup but warn user
-      // Don't delete the code - email might have been sent but we got an error
-      console.warn('⚠️ Email sending failed, but allowing signup to proceed');
-      return res.json({ 
-        success: true,
-        message: 'Verification code generated. Please check your email (including spam folder).',
-        email: email,
-        warning: 'Email delivery may be delayed. If you don\'t receive the code, try resending.'
-      });
-    }
+    // Respond immediately - email is being sent in background
+    res.json({ 
+      success: true,
+      message: 'Verification code sent to your email',
+      email: email,
+      devCode: (process.env.NODE_ENV === 'development' || process.env.EMAIL_DEV_MODE === 'true') ? verificationCode : undefined
+    });
 
   } catch (error) {
     console.error('❌ Signup error:', error.message);
@@ -232,24 +214,22 @@ exports.resendCode = async (req, res) => {
 
     verificationCodes.set(email, { ...verificationData, code: newCode, expiresAt });
 
-    try {
-      await sendVerificationEmail(email, newCode, verificationData.userData.name);
-      return res.json({ 
-        success: true, 
-        message: 'New verification code sent',
-        devCode: process.env.NODE_ENV === 'development' ? newCode : undefined
+    // Send email immediately (don't wait for response)
+    sendVerificationEmail(email, newCode, verificationData.userData.name)
+      .then(() => {
+        console.log(`✅ Resend verification code sent to ${email}`);
+      })
+      .catch((emailError) => {
+        console.error('📧 Resend email failed:', emailError.message);
+        // Email failed but new code is stored, user can try again
       });
-    } catch (emailError) {
-      console.error('📧 Resend email failed:', emailError.message);
-      if (process.env.NODE_ENV === 'development' || process.env.EMAIL_DEV_MODE === 'true') {
-        return res.json({ 
-          success: true, 
-          message: 'New verification code generated (email not sent)',
-          devCode: newCode
-        });
-      }
-      return res.status(500).json({ success: false, message: 'Failed to resend verification code' });
-    }
+
+    // Respond immediately - email is being sent in background
+    return res.json({ 
+      success: true, 
+      message: 'New verification code sent to your email',
+      devCode: (process.env.NODE_ENV === 'development' || process.env.EMAIL_DEV_MODE === 'true') ? newCode : undefined
+    });
 
   } catch (error) {
     console.error('❌ Resend code error:', error.message);

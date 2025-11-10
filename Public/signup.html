@@ -324,16 +324,27 @@ document.getElementById('signup-form').addEventListener('submit', async (e) => {
   const submitBtn = e.submitter || document.querySelector('#signup-form button[type="submit"]');
 
   try {
+    console.log('📤 Sending signup request...', { name, email, phone: phone || 'none' });
+    
     const response = await apiFetch('/auth/signup', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name, email, phone, password })
     });
 
+    console.log('📥 Response status:', response.status, response.statusText);
+
     let data;
-    try { data = await response.json(); } catch(e) { data = null; }
+    try { 
+      data = await response.json(); 
+      console.log('📦 Response data:', data);
+    } catch(e) { 
+      console.error('❌ Failed to parse JSON response:', e);
+      data = null; 
+    }
 
     if (response.ok && data && data.success) {
+      console.log('✅ Signup successful!');
       userEmail = email;
       showVerificationForm();
       startCodeTimer();
@@ -341,19 +352,49 @@ document.getElementById('signup-form').addEventListener('submit', async (e) => {
       // Show dev code in console for testing
       if (data && data.devCode) {
         console.log('🔑 Development Code:', data.devCode);
-        alert('Development Mode: Check console for verification code');
+        alert(`Development Mode: Your verification code is ${data.devCode}`);
       }
     } else {
+      console.error('❌ Signup failed:', {
+        status: response.status,
+        statusText: response.statusText,
+        data: data
+      });
+      
       if (response.status === 429) {
         alert('Too many signup attempts. Please wait a moment and try again.');
         return;
       }
-      const message = (data && data.message) || `HTTP ${response.status}`;
+      
+      if (response.status === 404) {
+        alert('Signup endpoint not found. Please check your connection or contact support.');
+        console.error('Endpoint URL:', getApiBase() + '/auth/signup');
+        return;
+      }
+      
+      if (response.status === 500) {
+        const message = (data && data.message) || 'Server error. Please try again later.';
+        alert('Signup failed: ' + message);
+        console.error('Server error details:', data);
+        return;
+      }
+      
+      const message = (data && data.message) || `HTTP ${response.status}: ${response.statusText}`;
       alert('Signup failed: ' + message);
     }
   } catch (error) {
-    console.error('Signup error:', error);
-    alert('An error occurred during signup');
+    console.error('❌ Signup error:', error);
+    console.error('Error details:', {
+      name: error.name,
+      message: error.message,
+      stack: error.stack
+    });
+    
+    if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+      alert('Network error: Could not connect to server. Please check your internet connection.');
+    } else {
+      alert('An error occurred during signup: ' + error.message);
+    }
   }
 });
 

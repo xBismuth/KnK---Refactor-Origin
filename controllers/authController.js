@@ -70,22 +70,13 @@ exports.signup = async (req, res) => {
         devCode: process.env.NODE_ENV === 'development' ? verificationCode : undefined
       });
     } catch (emailError) {
-      console.error('📧 Email sending failed:', emailError.message);
-      verificationCodes.delete(email);
+      console.error('📧 Email sending failed after retries:', emailError.message);
       
-      // Optional fail-open mode for environments without SMTP
+      // Always allow signup to proceed even if email fails
+      // The code is stored, user can still verify if they have the code
+      // In production, this should rarely happen due to retry logic
       if (process.env.NODE_ENV === 'development' || process.env.EMAIL_DEV_MODE === 'true') {
-        // Re-store the code so verification can proceed even if email failed
-        verificationCodes.set(email, {
-          code: verificationCode,
-          expiresAt,
-          userData: {
-            name,
-            email,
-            phone: phone || null,
-            password: hashedPassword
-          }
-        });
+        console.log('⚠️ Development mode: Returning code despite email failure');
         return res.json({ 
           success: true,
           message: 'Verification code generated (email not sent)',
@@ -94,9 +85,14 @@ exports.signup = async (req, res) => {
         });
       }
       
-      res.status(500).json({ 
-        success: false, 
-        message: 'Failed to send verification email. Please try again.' 
+      // In production, still allow signup but warn user
+      // Don't delete the code - email might have been sent but we got an error
+      console.warn('⚠️ Email sending failed, but allowing signup to proceed');
+      return res.json({ 
+        success: true,
+        message: 'Verification code generated. Please check your email (including spam folder).',
+        email: email,
+        warning: 'Email delivery may be delayed. If you don\'t receive the code, try resending.'
       });
     }
 

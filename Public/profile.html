@@ -1577,6 +1577,21 @@ function initializeProfileForm() {
       phone: phoneInput?.value || ''
     };
     
+    // Remove existing listeners to prevent duplicates
+    const removeListeners = (input, event, handler) => {
+      if (input) {
+        input.removeEventListener(event, handler);
+      }
+    };
+    
+    // Remove old listeners
+    [nameInput, emailInput, phoneInput].forEach(input => {
+      if (input) {
+        removeListeners(input, 'input', checkFormChanges);
+        removeListeners(input, 'blur', () => validateField(input.id));
+      }
+    });
+    
     // Add input listeners for change tracking
     [nameInput, emailInput, phoneInput].forEach(input => {
       if (input) {
@@ -1587,20 +1602,29 @@ function initializeProfileForm() {
     
     // Phone number validation - digits only
     if (phoneInput) {
-      phoneInput.addEventListener('input', (e) => {
+      // Remove old listener
+      phoneInput.removeEventListener('input', phoneInput._phoneHandler);
+      phoneInput._phoneHandler = (e) => {
         e.target.value = e.target.value.replace(/\D/g, '');
         validateField('edit-phone');
         checkFormChanges();
-      });
+      };
+      phoneInput.addEventListener('input', phoneInput._phoneHandler);
     }
     
     // Email validation
     if (emailInput) {
-      emailInput.addEventListener('input', () => {
+      // Remove old listener
+      emailInput.removeEventListener('input', emailInput._emailHandler);
+      emailInput._emailHandler = () => {
         validateField('edit-email');
         checkFormChanges();
-      });
+      };
+      emailInput.addEventListener('input', emailInput._emailHandler);
     }
+    
+    // Initial validation and button state
+    checkFormChanges();
   }
 }
 
@@ -1726,6 +1750,18 @@ function validateAllFields() {
   const nameValid = validateField('edit-name');
   const emailValid = validateField('edit-email');
   const phoneValid = validateField('edit-phone');
+  
+  // Also check that required fields are not empty
+  const nameInput = document.getElementById('edit-name');
+  const emailInput = document.getElementById('edit-email');
+  
+  if (!nameInput || !emailInput) return false;
+  
+  const name = nameInput.value.trim();
+  const email = emailInput.value.trim();
+  
+  if (!name || !email) return false;
+  
   return nameValid && emailValid && phoneValid;
 }
 
@@ -1907,7 +1943,13 @@ async function saveProfile(event) {
   const email = emailInput.value.trim();
   const phone = phoneInput?.value.trim() || '';
   
-  // Validation
+  // Validate all fields before submission
+  if (!validateAllFields()) {
+    showEditProfileError('Please fix the errors above before saving');
+    return;
+  }
+  
+  // Additional validation
   if (!name || !email) {
     showEditProfileError('Name and email are required');
     return;
@@ -1942,7 +1984,7 @@ async function saveProfile(event) {
       throw new Error('No authentication token');
     }
     
-    // Try /auth/update-profile, fallback to /api/auth/update-profile automatically
+    // Try /auth/update-profile first (routes are mounted at /auth)
     let response = await fetch(`${AUTH_API_BASE}/auth/update-profile`, {
       method: 'PUT',
       headers: {
@@ -1951,7 +1993,10 @@ async function saveProfile(event) {
       },
       body: JSON.stringify(payload)
     });
+    
+    // Fallback to /api/auth/update-profile if 404
     if (response.status === 404) {
+      console.log('⚠️ Primary endpoint not found, trying /api/auth/update-profile...');
       response = await fetch(`${AUTH_API_BASE}/api/auth/update-profile`, {
         method: 'PUT',
         headers: {
@@ -1988,11 +2033,20 @@ async function saveProfile(event) {
     
     if (data.success) {
       // Update local user data
-      currentUser = { ...currentUser, ...data.user };
-      localStorage.setItem('currentUser', JSON.stringify(currentUser));
+      if (data.user) {
+        currentUser = { ...currentUser, ...data.user };
+        localStorage.setItem('currentUser', JSON.stringify(currentUser));
+      }
       
       // Update UI
       updateUserUI();
+      
+      // Update original form data to reflect saved state
+      __originalFormData = {
+        name: name,
+        email: email,
+        phone: phone
+      };
       
       // Show success
       showToast('Profile updated successfully!', 'success');

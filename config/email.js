@@ -34,8 +34,9 @@ if (process.env.RESEND_FROM_EMAIL && !process.env.RESEND_FROM_EMAIL.includes('re
   console.log(`📧 Emails will be sent from: ${process.env.RESEND_FROM_EMAIL}`);
   console.log(`🌐 Application domain: ${DOMAIN}`);
 } else {
-  console.log(`📧 Email domain: ${DOMAIN} (using onboarding@resend.dev for testing)`);
-  console.log('💡 To use custom domain, verify it at https://resend.com/domains and set RESEND_FROM_EMAIL');
+  console.log(`📧 Using Resend free domain: onboarding@resend.dev (no verification needed)`);
+  console.log(`🌐 Application domain: ${DOMAIN}`);
+  console.log('✅ Ready to send emails - no domain verification required!');
 }
 
 // Export Resend client and helper functions

@@ -1657,6 +1657,14 @@ async function requestPasswordCode() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email })
       });
+      if (res.status === 404) {
+        // Try with /api prefix
+        res = await fetch(`${AUTH_API_BASE}/api/auth/forgot-password`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email })
+        });
+      }
     }
     if (!res.ok) {
       const msg = data?.message || `HTTP ${res.status}`;
@@ -1750,6 +1758,15 @@ async function changePasswordWithCode() {
         body: JSON.stringify({ email, code, newPassword })
       });
       try { data = await res.json(); } catch(e) { data = {}; }
+      if (res.status === 404) {
+        // Try with /api prefix
+        res = await fetch(`${AUTH_API_BASE}/api/auth/reset-password`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, code, newPassword })
+        });
+        try { data = await res.json(); } catch(e) { data = {}; }
+      }
     }
     if (!res.ok || data.success === false) {
       throw new Error(data?.message || `HTTP ${res.status}`);

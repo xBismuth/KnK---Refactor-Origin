@@ -399,6 +399,8 @@ let token = null;
 let allItems = [];
 let currentFilter = 'all';
 let editingItemId = null;
+// API base handling: works for file:// and http(s) origins
+const API_BASE = (localStorage.getItem('apiBase') || (location.origin.startsWith('file:') ? 'http://localhost:3000' : '')).replace(/\/+$/, '');
 
 document.addEventListener('DOMContentLoaded', async () => {
   token = localStorage.getItem('adminToken');
@@ -407,13 +409,23 @@ document.addEventListener('DOMContentLoaded', async () => {
     return;
   }
   
+  // Make image preview clickable to open file chooser
+  const previewEl = document.getElementById('image-preview');
+  if (previewEl) {
+    previewEl.style.cursor = 'pointer';
+    previewEl.addEventListener('click', () => {
+      const input = document.getElementById('image-input');
+      if (input) input.click();
+    });
+  }
+  
   await loadUserInfo();
   await loadMenuItems();
 });
 
 async function loadUserInfo() {
   try {
-    const res = await fetch('/auth/me', { 
+    const res = await fetch(`${API_BASE}/auth/me`, { 
       headers: { 'Authorization': `Bearer ${token}` } 
     });
     
@@ -438,7 +450,7 @@ async function loadUserInfo() {
 
 async function loadMenuItems() {
   try {
-    const res = await fetch('/api/admin/menu', {
+    const res = await fetch(`${API_BASE}/api/admin/menu`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     
@@ -596,7 +608,7 @@ async function handleImageUpload(event) {
     formData.append('image', file);
     formData.append('itemName', itemName);
     
-    const response = await fetch('/api/admin/menu/upload-image', {
+    const response = await fetch(`${API_BASE}/api/admin/menu/upload-image`, {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${token}` },
       body: formData
@@ -668,7 +680,7 @@ async function saveItem(event) {
   
   try {
     const isEdit = editingItemId !== null && editingItemId !== undefined;
-    const url = isEdit ? `/api/admin/menu/${editingItemId}` : '/api/admin/menu';
+    const url = isEdit ? `${API_BASE}/api/admin/menu/${editingItemId}` : `${API_BASE}/api/admin/menu`;
     const method = isEdit ? 'PATCH' : 'POST';
     
     console.log(`📡 ${method} ${url}`);
@@ -738,7 +750,7 @@ async function confirmDelete() {
   const id = document.getElementById('delete-item-id').value;
   
   try {
-    const res = await fetch(`/api/admin/menu/${id}`, {
+    const res = await fetch(`${API_BASE}/api/admin/menu/${id}`, {
       method: 'DELETE',
       headers: { 'Authorization': `Bearer ${token}` }
     });

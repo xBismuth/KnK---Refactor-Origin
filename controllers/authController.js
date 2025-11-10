@@ -59,18 +59,32 @@ exports.signup = async (req, res) => {
       }
     });
 
-    // Send email immediately (don't wait for response to be sent)
-    // This allows the API to respond quickly while email is being sent
-    sendVerificationEmail(email, verificationCode, name)
-      .then(() => {
-        console.log(`✅ Verification code sent to ${email}`);
-      })
-      .catch((emailError) => {
-        console.error('📧 Email sending failed after retries:', emailError.message);
-        // Email failed but code is still stored, user can resend
+    // Check if email credentials are configured
+    if (!process.env.MAIL_USER || !process.env.MAIL_PASS) {
+      console.error('❌ Email credentials not configured! MAIL_USER or MAIL_PASS missing.');
+      return res.status(500).json({ 
+        success: false, 
+        message: 'Email service not configured. Please contact support.' 
       });
+    }
 
-    // Respond immediately - email is being sent in background
+    // Send email and wait for it to complete (or fail)
+    try {
+      await sendVerificationEmail(email, verificationCode, name);
+      console.log(`✅ Verification code sent to ${email}`);
+    } catch (emailError) {
+      console.error('📧 Email sending failed after retries:', emailError.message);
+      console.error('📧 Full error:', emailError);
+      
+      // Email failed - return error so user knows
+      return res.status(500).json({ 
+        success: false, 
+        message: 'Failed to send verification email. Please try again or contact support.',
+        error: process.env.NODE_ENV === 'development' ? emailError.message : undefined
+      });
+    }
+
+    // Email sent successfully
     res.json({ 
       success: true,
       message: 'Verification code sent to your email',
@@ -214,17 +228,32 @@ exports.resendCode = async (req, res) => {
 
     verificationCodes.set(email, { ...verificationData, code: newCode, expiresAt });
 
-    // Send email immediately (don't wait for response)
-    sendVerificationEmail(email, newCode, verificationData.userData.name)
-      .then(() => {
-        console.log(`✅ Resend verification code sent to ${email}`);
-      })
-      .catch((emailError) => {
-        console.error('📧 Resend email failed:', emailError.message);
-        // Email failed but new code is stored, user can try again
+    // Check if email credentials are configured
+    if (!process.env.MAIL_USER || !process.env.MAIL_PASS) {
+      console.error('❌ Email credentials not configured! MAIL_USER or MAIL_PASS missing.');
+      return res.status(500).json({ 
+        success: false, 
+        message: 'Email service not configured. Please contact support.' 
       });
+    }
 
-    // Respond immediately - email is being sent in background
+    // Send email and wait for it to complete
+    try {
+      await sendVerificationEmail(email, newCode, verificationData.userData.name);
+      console.log(`✅ Resend verification code sent to ${email}`);
+    } catch (emailError) {
+      console.error('📧 Resend email failed:', emailError.message);
+      console.error('📧 Full error:', emailError);
+      
+      // Email failed - return error
+      return res.status(500).json({ 
+        success: false, 
+        message: 'Failed to resend verification email. Please try again.',
+        error: process.env.NODE_ENV === 'development' ? emailError.message : undefined
+      });
+    }
+
+    // Email sent successfully
     return res.json({ 
       success: true, 
       message: 'New verification code sent to your email',

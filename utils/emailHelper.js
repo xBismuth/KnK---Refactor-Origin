@@ -65,6 +65,13 @@ async function sendVerificationEmail(toEmail, code, userName = 'Valued Customer'
   };
 
   const sendWithRetry = async (attempts = 3) => {
+    // Check credentials first
+    if (!process.env.MAIL_USER || !process.env.MAIL_PASS) {
+      const error = new Error('Email credentials not configured (MAIL_USER or MAIL_PASS missing)');
+      console.error(`❌ ${error.message}`);
+      throw error;
+    }
+
     let lastErr;
     for (let i = 1; i <= attempts; i++) {
       try {
@@ -73,14 +80,34 @@ async function sendVerificationEmail(toEmail, code, userName = 'Valued Customer'
         return { success: true, messageId: info.messageId };
       } catch (error) {
         lastErr = error;
-        console.warn(`📧 Send attempt ${i} failed for ${toEmail}: ${error.message}`);
+        const errorMsg = error.message || error.code || 'Unknown error';
+        console.warn(`📧 Send attempt ${i}/${attempts} failed for ${toEmail}: ${errorMsg}`);
+        
+        // Log more details for debugging
+        if (error.code) {
+          console.warn(`   Error code: ${error.code}`);
+        }
+        if (error.response) {
+          console.warn(`   SMTP response: ${error.response}`);
+        }
+        if (error.responseCode) {
+          console.warn(`   SMTP response code: ${error.responseCode}`);
+        }
+        
         // Exponential backoff: 500ms, 1000ms, 2000ms
         if (i < attempts) {
           await new Promise(r => setTimeout(r, 500 * Math.pow(2, i - 1)));
         }
       }
     }
-    console.error(`❌ Error sending email to ${toEmail} after retries:`, lastErr?.message);
+    console.error(`❌ Error sending email to ${toEmail} after ${attempts} retries:`, lastErr?.message);
+    console.error(`   Full error details:`, {
+      message: lastErr?.message,
+      code: lastErr?.code,
+      response: lastErr?.response,
+      responseCode: lastErr?.responseCode,
+      command: lastErr?.command
+    });
     throw lastErr;
   };
   return sendWithRetry();

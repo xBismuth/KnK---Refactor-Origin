@@ -8,6 +8,12 @@ const SMTP_SECURE = process.env.SMTP_SECURE
   ? process.env.SMTP_SECURE.toLowerCase() === 'true'
   : SMTP_PORT === 465;
 
+// Validate email credentials
+if (!process.env.MAIL_USER || !process.env.MAIL_PASS) {
+  console.error('❌ Email credentials missing! MAIL_USER and MAIL_PASS must be set.');
+  console.error('   Email sending will fail until credentials are configured.');
+}
+
 const emailTransporter = nodemailer.createTransport({
   host: SMTP_HOST,
   port: SMTP_PORT,

@@ -2,8 +2,8 @@
 const rateLimit = require('express-rate-limit');
 
 const apiLimiter = rateLimit({
-  windowMs: 10 * 60 * 1000, // 10 minutes
-  max: 300, // allow more general API calls
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 1000, // generous for general API calls
   standardHeaders: true,
   legacyHeaders: false,
   message: 'Too many requests from this IP, please try again later.',
@@ -13,8 +13,8 @@ const apiLimiter = rateLimit({
 });
 
 const authLimiter = rateLimit({
-  windowMs: 5 * 60 * 1000, // 5 minutes
-  max: 10, // allow more attempts across signup/login in short window
+  windowMs: 10 * 60 * 1000, // 10 minutes
+  max: 20, // typical "normal website" tolerance
   standardHeaders: true,
   legacyHeaders: false,
   message: 'Too many auth attempts, please try again later.',
@@ -25,4 +25,26 @@ const authLimiter = rateLimit({
   skip: () => process.env.NODE_ENV === 'development'
 });
 
-module.exports = { apiLimiter, authLimiter };
+// More granular, route-specific limiters
+const signupLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 20, // up to 20 signups/ip/hour
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: 'Too many sign-up requests from this IP, please try again later.',
+  trustProxy: 1,
+  skipSuccessfulRequests: true,
+  skip: () => process.env.NODE_ENV === 'development'
+});
+
+const resendLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 5, // up to 5 resends per minute
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: 'Too many code resend requests, please wait a moment and try again.',
+  trustProxy: 1,
+  skip: () => process.env.NODE_ENV === 'development'
+});
+
+module.exports = { apiLimiter, authLimiter, signupLimiter, resendLimiter };

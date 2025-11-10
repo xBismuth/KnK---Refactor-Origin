@@ -3,12 +3,12 @@ const express = require('express');
 const router = express.Router();
 const authController = require('../controllers/authController');
 const { verifyToken } = require('../middlewares/authMiddleware');
-const { authLimiter, apiLimiter } = require('../middlewares/rateLimiter');
+const { authLimiter, apiLimiter, signupLimiter, resendLimiter } = require('../middlewares/rateLimiter');
 
 // Signup flow
-router.post('/signup', authLimiter, authController.signup);
+router.post('/signup', signupLimiter, authController.signup);
 router.post('/verify-code', authController.verifyCode);
-router.post('/resend-code', authController.resendCode);
+router.post('/resend-code', resendLimiter, authController.resendCode);
 
 // Login flow
 router.post('/send-login-code', authLimiter, authController.sendLoginCode);

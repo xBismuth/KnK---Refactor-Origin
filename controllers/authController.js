@@ -73,10 +73,22 @@ exports.signup = async (req, res) => {
       console.error('📧 Email sending failed:', emailError.message);
       verificationCodes.delete(email);
       
-      if (process.env.NODE_ENV === 'development') {
+      // Optional fail-open mode for environments without SMTP
+      if (process.env.NODE_ENV === 'development' || process.env.EMAIL_DEV_MODE === 'true') {
+        // Re-store the code so verification can proceed even if email failed
+        verificationCodes.set(email, {
+          code: verificationCode,
+          expiresAt,
+          userData: {
+            name,
+            email,
+            phone: phone || null,
+            password: hashedPassword
+          }
+        });
         return res.json({ 
           success: true,
-          message: 'Verification code generated (email disabled in dev)',
+          message: 'Verification code generated (email not sent)',
           email: email,
           devCode: verificationCode
         });
@@ -224,13 +236,24 @@ exports.resendCode = async (req, res) => {
 
     verificationCodes.set(email, { ...verificationData, code: newCode, expiresAt });
 
-    await sendVerificationEmail(email, newCode, verificationData.userData.name);
-
-    res.json({ 
-      success: true, 
-      message: 'New verification code sent',
-      devCode: process.env.NODE_ENV === 'development' ? newCode : undefined
-    });
+    try {
+      await sendVerificationEmail(email, newCode, verificationData.userData.name);
+      return res.json({ 
+        success: true, 
+        message: 'New verification code sent',
+        devCode: process.env.NODE_ENV === 'development' ? newCode : undefined
+      });
+    } catch (emailError) {
+      console.error('📧 Resend email failed:', emailError.message);
+      if (process.env.NODE_ENV === 'development' || process.env.EMAIL_DEV_MODE === 'true') {
+        return res.json({ 
+          success: true, 
+          message: 'New verification code generated (email not sent)',
+          devCode: newCode
+        });
+      }
+      return res.status(500).json({ success: false, message: 'Failed to resend verification code' });
+    }
 
   } catch (error) {
     console.error('❌ Resend code error:', error.message);

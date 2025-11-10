@@ -1360,29 +1360,8 @@ function createEditProfileModal() {
                   aria-disabled="true"
                 />
                 <p class="text-xs text-gray-500 mt-2" id="code-help-text">
-                  A verification code will be sent to your email when you start entering a new password.
+                  A verification code will be sent to your email after you enter both passwords.
                 </p>
-              </div>
-
-              <div id="verification-code-group" class="hidden">
-                <label for="verification-code" class="block text-sm font-semibold text-dark mb-2">
-                  Verification Code <span class="text-red-500">*</span>
-                </label>
-                <div class="relative">
-                  <input 
-                    type="text" 
-                    id="verification-code" 
-                    maxlength="6"
-                    inputmode="numeric"
-                    aria-required="true"
-                    aria-invalid="false"
-                    aria-describedby="verification-code-error verification-code-success"
-                    class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-accent focus:ring-2 focus:ring-accent/20 outline-none text-center tracking-widest text-lg font-mono"
-                    placeholder="000000"
-                  />
-                </div>
-                <div id="verification-code-error" class="hidden text-sm text-red-600 mt-1" role="alert"></div>
-                <div id="verification-code-success" class="hidden text-sm text-green-600 mt-1" role="status"></div>
               </div>
             </div>
 
@@ -1449,6 +1428,27 @@ function createEditProfileModal() {
               </div>
             </div>
 
+            <div id="verification-code-group" class="hidden">
+              <label for="verification-code" class="block text-sm font-semibold text-dark mb-2">
+                Verification Code <span class="text-red-500">*</span>
+              </label>
+              <div class="relative">
+                <input 
+                  type="text" 
+                  id="verification-code" 
+                  maxlength="6"
+                  inputmode="numeric"
+                  aria-required="true"
+                  aria-invalid="false"
+                  aria-describedby="verification-code-error verification-code-success"
+                  class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-accent focus:ring-2 focus:ring-accent/20 outline-none text-center tracking-widest text-lg font-mono"
+                  placeholder="000000"
+                />
+              </div>
+              <div id="verification-code-error" class="hidden text-sm text-red-600 mt-1" role="alert"></div>
+              <div id="verification-code-success" class="hidden text-sm text-green-600 mt-1" role="status"></div>
+            </div>
+
             <div class="flex justify-end">
               <button 
                 type="button" 
@@ -1496,32 +1496,42 @@ function createEditProfileModal() {
   // Populate form and show modal
   editProfile();
 
-  // Wire auto behaviors: send code when user starts entering a new password
+  // Wire auto behaviors: send code when both passwords are entered
   const newPass = document.getElementById('code-new-password');
   const confirmPass = document.getElementById('code-confirm-password');
   const codeInput = document.getElementById('verification-code');
   const codeGroup = document.getElementById('verification-code-group');
 
+  function checkAndShowVerificationCode() {
+    const newPassValue = newPass?.value.trim() || '';
+    const confirmPassValue = confirmPass?.value.trim() || '';
+    
+    // Show verification code only if both passwords have at least 6 characters
+    if (newPassValue.length >= 6 && confirmPassValue.length >= 6) {
+      if (!__codeRequested) {
+        requestPasswordCode();
+      }
+      if (codeGroup) codeGroup.classList.remove('hidden');
+    } else {
+      // Hide code group if either password is cleared or too short
+      __codeRequested = false;
+      __passwordCodeVerified = false;
+      setCodeVerifiedUI(false);
+      if (codeInput) codeInput.value = '';
+      if (codeGroup) codeGroup.classList.add('hidden');
+    }
+  }
+
   if (newPass) {
     newPass.addEventListener('input', () => {
       validatePasswordFields();
-      if (newPass.value.trim().length >= 1 && !__codeRequested) {
-        requestPasswordCode();
-        if (codeGroup) codeGroup.classList.remove('hidden');
-      }
-      // Hide code group again if cleared
-      if (!newPass.value.trim()) {
-        __codeRequested = false;
-        __passwordCodeVerified = false;
-        setCodeVerifiedUI(false);
-        if (codeInput) codeInput.value = '';
-        if (codeGroup) codeGroup.classList.add('hidden');
-      }
+      checkAndShowVerificationCode();
     });
   }
   if (confirmPass) {
     confirmPass.addEventListener('input', () => {
       validatePasswordFields();
+      checkAndShowVerificationCode();
     });
   }
   if (codeInput) {

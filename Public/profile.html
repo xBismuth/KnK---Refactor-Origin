@@ -1169,22 +1169,17 @@ function editProfile() {
   const nameInput = document.getElementById('edit-name');
   const emailInput = document.getElementById('edit-email');
   const phoneInput = document.getElementById('edit-phone');
-  const currentPasswordInput = document.getElementById('edit-current-password');
-  const newPasswordInput = document.getElementById('edit-new-password');
-  const confirmPasswordInput = document.getElementById('edit-confirm-password');
   
   if (nameInput) nameInput.value = currentUser.name || '';
   if (emailInput) emailInput.value = currentUser.email || '';
   if (phoneInput) phoneInput.value = currentUser.phone || '';
-  if (currentPasswordInput) currentPasswordInput.value = '';
-  if (newPasswordInput) newPasswordInput.value = '';
-  if (confirmPasswordInput) confirmPasswordInput.value = '';
+  
   // Pre-fill change-password-by-code email if section exists
   const codeEmailInput = document.getElementById('change-pass-email');
   if (codeEmailInput) codeEmailInput.value = currentUser.email || '';
   
-  // Show/hide password fields based on auth type
-  const passwordSection = document.getElementById('edit-password-section');
+  // Show/hide password section based on auth type
+  const passwordSection = document.getElementById('change-password-by-code');
   if (passwordSection) {
     if (currentUser.auth_type === 'email' || currentUser.authType === 'email') {
       passwordSection.classList.remove('hidden');
@@ -1263,52 +1258,8 @@ function createEditProfileModal() {
             />
           </div>
           
-          <!-- Password Section (only for email auth) -->
-          <div id="edit-password-section" class="space-y-4 pt-4 border-t border-gray-200">
-            <h3 class="text-lg font-bold text-dark">Change Password (Optional)</h3>
-            
-            <!-- Current Password -->
-            <div>
-              <label for="edit-current-password" class="block text-sm font-semibold text-dark mb-2">Current Password</label>
-              <input 
-                type="password" 
-                id="edit-current-password" 
-                name="currentPassword" 
-                class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-accent focus:ring-2 focus:ring-accent/20 transition-all outline-none"
-                placeholder="Enter current password"
-              />
-            </div>
-            
-            <!-- New Password -->
-            <div>
-              <label for="edit-new-password" class="block text-sm font-semibold text-dark mb-2">New Password</label>
-              <input 
-                type="password" 
-                id="edit-new-password" 
-                name="newPassword" 
-                minlength="6"
-                class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-accent focus:ring-2 focus:ring-accent/20 transition-all outline-none"
-                placeholder="At least 6 characters"
-              />
-              <p class="text-xs text-gray-500 mt-1">Leave blank to keep current password</p>
-            </div>
-            
-            <!-- Confirm Password -->
-            <div>
-              <label for="edit-confirm-password" class="block text-sm font-semibold text-dark mb-2">Confirm New Password</label>
-              <input 
-                type="password" 
-                id="edit-confirm-password" 
-                name="confirmPassword" 
-                minlength="6"
-                class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-accent focus:ring-2 focus:ring-accent/20 transition-all outline-none"
-                placeholder="Confirm new password"
-              />
-            </div>
-          </div>
-          
-          <!-- Change Password via Email Code -->
-          <div id="change-password-by-code" class="space-y-4 pt-4 border-t border-gray-200">
+          <!-- Change Password via Email Code (only for email auth) -->
+          <div id="change-password-by-code" class="space-y-4 pt-4 border-t border-gray-200 hidden">
             <div class="flex items-center justify-between">
               <h3 class="text-lg font-bold text-dark">Change Password</h3>
               <span id="code-status-badge" class="hidden px-2 py-1 text-xs rounded-full bg-green-100 text-green-700">Verified</span>
@@ -1324,7 +1275,7 @@ function createEditProfileModal() {
                   disabled
                 />
                 <p class="text-xs text-gray-500 mt-2" id="code-help-text">
-                  A 6-digit verification code will be sent automatically when you start changing your password.
+                  A verification code will be sent to your email when you start entering a new password.
                 </p>
               </div>
 
@@ -1368,10 +1319,6 @@ function createEditProfileModal() {
               <button type="button" id="change-password-btn" onclick="changePasswordWithCode()" class="px-6 py-3 bg-gradient-to-r from-accent to-accent-dark text-white font-semibold rounded-xl hover:shadow-lg transition-all" disabled>
                 Change Password
               </button>
-            </div>
-
-            <div class="text-xs text-gray-500">
-              Verify the code to enable password change. The button activates after valid code entry.
             </div>
           </div>
           
@@ -1484,9 +1431,6 @@ async function saveProfile(event) {
   const nameInput = document.getElementById('edit-name');
   const emailInput = document.getElementById('edit-email');
   const phoneInput = document.getElementById('edit-phone');
-  const currentPasswordInput = document.getElementById('edit-current-password');
-  const newPasswordInput = document.getElementById('edit-new-password');
-  const confirmPasswordInput = document.getElementById('edit-confirm-password');
   
   if (!nameInput || !emailInput) {
     showEditProfileError('Form elements not found');
@@ -1496,9 +1440,6 @@ async function saveProfile(event) {
   const name = nameInput.value.trim();
   const email = emailInput.value.trim();
   const phone = phoneInput?.value.trim() || '';
-  const currentPassword = currentPasswordInput?.value || '';
-  const newPassword = newPasswordInput?.value || '';
-  const confirmPassword = confirmPasswordInput?.value || '';
   
   // Validation
   if (!name || !email) {
@@ -1511,24 +1452,6 @@ async function saveProfile(event) {
   if (!emailRegex.test(email)) {
     showEditProfileError('Please enter a valid email address');
     return;
-  }
-  
-  // Password validation (if new password is provided)
-  if (newPassword) {
-    if (newPassword.length < 6) {
-      showEditProfileError('New password must be at least 6 characters');
-      return;
-    }
-    
-    if (newPassword !== confirmPassword) {
-      showEditProfileError('New passwords do not match');
-      return;
-    }
-    
-    if (!currentPassword) {
-      showEditProfileError('Current password is required to change password');
-      return;
-    }
   }
   
   // Disable submit button
@@ -1546,12 +1469,6 @@ async function saveProfile(event) {
       email,
       phone: phone || null
     };
-    
-    // Only include password fields if new password is provided
-    if (newPassword) {
-      payload.currentPassword = currentPassword;
-      payload.newPassword = newPassword;
-    }
     
     // Note: apiFetch uses /api prefix, but update-profile is at /auth
     const token = getAuthToken();

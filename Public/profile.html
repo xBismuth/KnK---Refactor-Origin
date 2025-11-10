@@ -1191,9 +1191,21 @@ function editProfile() {
   // Clear any previous errors
   hideEditProfileError();
   
-  // Show modal
+  // Initialize form tracking with current values
+  setTimeout(() => {
+    initializeProfileForm();
+  }, 50);
+  
+  // Show modal with animation
   modal.classList.remove('hidden');
   modal.classList.add('flex');
+  
+  // Animate in
+  setTimeout(() => {
+    modal.classList.remove('opacity-0');
+    const modalContent = modal.querySelector('div > div');
+    if (modalContent) modalContent.classList.remove('scale-95');
+  }, 10);
   
   // Focus on first input
   setTimeout(() => {
@@ -1203,12 +1215,27 @@ function editProfile() {
 
 function createEditProfileModal() {
   const modalHTML = `
-    <div id="edit-profile-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/60 backdrop-blur-sm p-4" onclick="closeEditProfileModal(event)">
-      <div class="bg-white rounded-3xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto" onclick="event.stopPropagation()">
+    <div 
+      id="edit-profile-modal" 
+      class="fixed inset-0 z-50 hidden items-center justify-center bg-black/60 backdrop-blur-sm p-4 transition-opacity duration-300 opacity-0"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="edit-profile-title"
+      onclick="closeEditProfileModal(event)"
+      tabindex="-1"
+    >
+      <div 
+        class="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto transform transition-all duration-300 scale-95"
+        onclick="event.stopPropagation()"
+      >
         <!-- Header -->
-        <div class="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 rounded-t-3xl flex justify-between items-center">
-          <h2 class="text-2xl font-bold text-dark">Edit Profile</h2>
-          <button onclick="closeEditProfileModal()" class="text-gray-500 hover:text-accent transition-colors">
+        <div class="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 rounded-t-xl flex justify-between items-center z-10">
+          <h2 id="edit-profile-title" class="text-2xl font-bold text-dark">Edit Profile</h2>
+          <button 
+            onclick="closeEditProfileModal()" 
+            class="text-gray-500 hover:text-accent transition-colors focus:outline-none focus:ring-2 focus:ring-accent/20 rounded-lg p-1"
+            aria-label="Close modal"
+          >
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
             </svg>
@@ -1217,52 +1244,89 @@ function createEditProfileModal() {
         
         <!-- Form -->
         <form id="edit-profile-form" onsubmit="saveProfile(event)" class="p-6 space-y-6">
-          <!-- Error Message -->
-          <div id="edit-profile-error" class="hidden bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg"></div>
+          <!-- Global Error Message -->
+          <div id="edit-profile-error" class="hidden bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg" role="alert"></div>
           
-          <!-- Name -->
-          <div>
-            <label for="edit-name" class="block text-sm font-semibold text-dark mb-2">Full Name *</label>
-            <input 
-              type="text" 
-              id="edit-name" 
-              name="name" 
-              required
-              class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-accent focus:ring-2 focus:ring-accent/20 transition-all outline-none"
-              placeholder="Enter your full name"
-            />
+          <!-- Profile Info Section -->
+          <div class="space-y-4">
+            <h3 class="text-lg font-bold text-dark flex items-center gap-2">
+              <svg class="w-5 h-5 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+              </svg>
+              Profile Information
+            </h3>
+            
+            <!-- Name -->
+            <div>
+              <label for="edit-name" class="block text-sm font-semibold text-dark mb-2">
+                Full Name <span class="text-red-500">*</span>
+              </label>
+              <input 
+                type="text" 
+                id="edit-name" 
+                name="name" 
+                required
+                aria-required="true"
+                aria-invalid="false"
+                aria-describedby="edit-name-error"
+                class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-accent focus:ring-2 focus:ring-accent/20 transition-all outline-none"
+                placeholder="Enter your full name"
+              />
+              <div id="edit-name-error" class="hidden text-sm text-red-600 mt-1" role="alert"></div>
+            </div>
+            
+            <!-- Email -->
+            <div>
+              <label for="edit-email" class="block text-sm font-semibold text-dark mb-2">
+                Email <span class="text-red-500">*</span>
+              </label>
+              <input 
+                type="email" 
+                id="edit-email" 
+                name="email" 
+                required
+                aria-required="true"
+                aria-invalid="false"
+                aria-describedby="edit-email-error edit-email-success"
+                class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-accent focus:ring-2 focus:ring-accent/20 transition-all outline-none"
+                placeholder="your.email@example.com"
+              />
+              <div id="edit-email-error" class="hidden text-sm text-red-600 mt-1" role="alert"></div>
+              <div id="edit-email-success" class="hidden text-sm text-green-600 mt-1" role="status"></div>
+            </div>
+            
+            <!-- Phone -->
+            <div>
+              <label for="edit-phone" class="block text-sm font-semibold text-dark mb-2">
+                Phone Number
+              </label>
+              <input 
+                type="tel" 
+                id="edit-phone" 
+                name="phone" 
+                aria-invalid="false"
+                aria-describedby="edit-phone-error edit-phone-success"
+                class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-accent focus:ring-2 focus:ring-accent/20 transition-all outline-none"
+                placeholder="e.g., 09123456789"
+                pattern="[0-9]*"
+                inputmode="numeric"
+              />
+              <div id="edit-phone-error" class="hidden text-sm text-red-600 mt-1" role="alert"></div>
+              <div id="edit-phone-success" class="hidden text-sm text-green-600 mt-1" role="status"></div>
+              <p class="text-xs text-gray-500 mt-1">Enter digits only (no spaces or dashes)</p>
+            </div>
           </div>
           
-          <!-- Email -->
-          <div>
-            <label for="edit-email" class="block text-sm font-semibold text-dark mb-2">Email *</label>
-            <input 
-              type="email" 
-              id="edit-email" 
-              name="email" 
-              required
-              class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-accent focus:ring-2 focus:ring-accent/20 transition-all outline-none"
-              placeholder="your.email@example.com"
-            />
-          </div>
-          
-          <!-- Phone -->
-          <div>
-            <label for="edit-phone" class="block text-sm font-semibold text-dark mb-2">Phone Number</label>
-            <input 
-              type="tel" 
-              id="edit-phone" 
-              name="phone" 
-              class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-accent focus:ring-2 focus:ring-accent/20 transition-all outline-none"
-              placeholder="Phone Number"
-            />
-          </div>
-          
-          <!-- Change Password via Email Code (only for email auth) -->
-          <div id="change-password-by-code" class="space-y-4 pt-4 border-t border-gray-200 hidden">
+          <!-- Change Password Section (only for email auth) -->
+          <div id="change-password-by-code" class="space-y-4 pt-6 border-t-2 border-gray-200 hidden">
             <div class="flex items-center justify-between">
-              <h3 class="text-lg font-bold text-dark">Change Password</h3>
-              <span id="code-status-badge" class="hidden px-2 py-1 text-xs rounded-full bg-green-100 text-green-700">Verified</span>
+              <h3 class="text-lg font-bold text-dark flex items-center gap-2">
+                <svg class="w-5 h-5 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                </svg>
+                Change Password
+              </h3>
+              <span id="code-status-badge" class="hidden px-2 py-1 text-xs rounded-full bg-green-100 text-green-700 font-semibold" role="status">Verified</span>
             </div>
 
             <div class="grid grid-cols-1 gap-4">
@@ -1273,6 +1337,7 @@ function createEditProfileModal() {
                   id="change-pass-email" 
                   class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl bg-gray-50 outline-none"
                   disabled
+                  aria-disabled="true"
                 />
                 <p class="text-xs text-gray-500 mt-2" id="code-help-text">
                   A verification code will be sent to your email when you start entering a new password.
@@ -1280,43 +1345,99 @@ function createEditProfileModal() {
               </div>
 
               <div id="verification-code-group" class="hidden">
-                <label for="verification-code" class="block text-sm font-semibold text-dark mb-2">Verification Code</label>
-                <input 
-                  type="text" 
-                  id="verification-code" 
-                  maxlength="6"
-                  inputmode="numeric"
-                  class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-accent focus:ring-2 focus:ring-accent/20 outline-none text-center tracking-widest"
-                  placeholder="000000"
-                />
+                <label for="verification-code" class="block text-sm font-semibold text-dark mb-2">
+                  Verification Code <span class="text-red-500">*</span>
+                </label>
+                <div class="relative">
+                  <input 
+                    type="text" 
+                    id="verification-code" 
+                    maxlength="6"
+                    inputmode="numeric"
+                    aria-required="true"
+                    aria-invalid="false"
+                    aria-describedby="verification-code-error verification-code-success"
+                    class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-accent focus:ring-2 focus:ring-accent/20 outline-none text-center tracking-widest text-lg font-mono"
+                    placeholder="000000"
+                  />
+                </div>
+                <div id="verification-code-error" class="hidden text-sm text-red-600 mt-1" role="alert"></div>
+                <div id="verification-code-success" class="hidden text-sm text-green-600 mt-1" role="status"></div>
               </div>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label for="code-new-password" class="block text-sm font-semibold text-dark mb-2">New Password</label>
-                <input 
-                  type="password" 
-                  id="code-new-password" 
-                  minlength="6"
-                  class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-accent focus:ring-2 focus:ring-accent/20 outline-none"
-                  placeholder="At least 6 characters"
-                />
+                <label for="code-new-password" class="block text-sm font-semibold text-dark mb-2">
+                  New Password <span class="text-red-500">*</span>
+                </label>
+                <div class="relative">
+                  <input 
+                    type="password" 
+                    id="code-new-password" 
+                    minlength="6"
+                    aria-required="true"
+                    aria-invalid="false"
+                    aria-describedby="code-new-password-error"
+                    class="w-full px-4 py-3 pr-12 border-2 border-gray-200 rounded-xl focus:border-accent focus:ring-2 focus:ring-accent/20 outline-none transition-all"
+                    placeholder="At least 6 characters"
+                  />
+                  <button 
+                    type="button"
+                    onclick="togglePasswordVisibility('code-new-password', 'toggle-new-password')"
+                    id="toggle-new-password"
+                    class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-accent focus:outline-none focus:ring-2 focus:ring-accent/20 rounded p-1"
+                    aria-label="Toggle password visibility"
+                  >
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                    </svg>
+                  </button>
+                </div>
+                <div id="code-new-password-error" class="hidden text-sm text-red-600 mt-1" role="alert"></div>
               </div>
               <div>
-                <label for="code-confirm-password" class="block text-sm font-semibold text-dark mb-2">Confirm New Password</label>
-                <input 
-                  type="password" 
-                  id="code-confirm-password" 
-                  minlength="6"
-                  class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-accent focus:ring-2 focus:ring-accent/20 outline-none"
-                  placeholder="Confirm new password"
-                />
+                <label for="code-confirm-password" class="block text-sm font-semibold text-dark mb-2">
+                  Confirm New Password <span class="text-red-500">*</span>
+                </label>
+                <div class="relative">
+                  <input 
+                    type="password" 
+                    id="code-confirm-password" 
+                    minlength="6"
+                    aria-required="true"
+                    aria-invalid="false"
+                    aria-describedby="code-confirm-password-error"
+                    class="w-full px-4 py-3 pr-12 border-2 border-gray-200 rounded-xl focus:border-accent focus:ring-2 focus:ring-accent/20 outline-none transition-all"
+                    placeholder="Confirm new password"
+                  />
+                  <button 
+                    type="button"
+                    onclick="togglePasswordVisibility('code-confirm-password', 'toggle-confirm-password')"
+                    id="toggle-confirm-password"
+                    class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-accent focus:outline-none focus:ring-2 focus:ring-accent/20 rounded p-1"
+                    aria-label="Toggle password visibility"
+                  >
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                    </svg>
+                  </button>
+                </div>
+                <div id="code-confirm-password-error" class="hidden text-sm text-red-600 mt-1" role="alert"></div>
               </div>
             </div>
 
             <div class="flex justify-end">
-              <button type="button" id="change-password-btn" onclick="changePasswordWithCode()" class="px-6 py-3 bg-gradient-to-r from-accent to-accent-dark text-white font-semibold rounded-xl hover:shadow-lg transition-all" disabled>
+              <button 
+                type="button" 
+                id="change-password-btn" 
+                onclick="changePasswordWithCode()" 
+                class="px-6 py-3 bg-gradient-to-r from-accent to-accent-dark text-white font-semibold rounded-xl hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-none"
+                disabled
+                aria-disabled="true"
+              >
                 Change Password
               </button>
             </div>
@@ -1327,14 +1448,16 @@ function createEditProfileModal() {
             <button 
               type="button" 
               onclick="closeEditProfileModal()" 
-              class="flex-1 px-6 py-3 bg-gray-100 text-gray-700 font-semibold rounded-xl hover:bg-gray-200 transition-all"
+              class="flex-1 px-6 py-3 bg-gray-100 text-gray-700 font-semibold rounded-xl hover:bg-gray-200 transition-all focus:outline-none focus:ring-2 focus:ring-gray-300"
             >
               Cancel
             </button>
             <button 
               type="submit" 
               id="edit-profile-submit-btn"
-              class="flex-1 px-6 py-3 bg-gradient-to-r from-accent to-accent-dark text-white font-semibold rounded-xl hover:shadow-lg transition-all"
+              class="flex-1 px-6 py-3 bg-gradient-to-r from-accent to-accent-dark text-white font-semibold rounded-xl hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-none focus:outline-none focus:ring-2 focus:ring-accent/20"
+              disabled
+              aria-disabled="true"
             >
               Save Changes
             </button>
@@ -1345,6 +1468,9 @@ function createEditProfileModal() {
   `;
   
   document.body.insertAdjacentHTML('beforeend', modalHTML);
+  
+  // Initialize form tracking and validation
+  initializeProfileForm();
   
   // Populate form and show modal
   editProfile();
@@ -1357,6 +1483,7 @@ function createEditProfileModal() {
 
   if (newPass) {
     newPass.addEventListener('input', () => {
+      validatePasswordFields();
       if (newPass.value.trim().length >= 1 && !__codeRequested) {
         requestPasswordCode();
       }
@@ -1376,6 +1503,9 @@ function createEditProfileModal() {
     });
   }
   if (confirmPass) {
+    confirmPass.addEventListener('input', () => {
+      validatePasswordFields();
+    });
     confirmPass.addEventListener('focus', () => {
       if (!__codeRequested) requestPasswordCode();
       if (codeGroup) codeGroup.classList.remove('hidden');
@@ -1383,7 +1513,8 @@ function createEditProfileModal() {
   }
   if (codeInput) {
     codeInput.addEventListener('input', (e) => {
-      e.target.value = e.target.value.replace(/\\D/g, '').slice(0, 6);
+      e.target.value = e.target.value.replace(/\D/g, '').slice(0, 6);
+      validateVerificationCode();
       if (e.target.value.length === 6) {
         setTimeout(() => verifyPasswordCode(), 200);
       }
@@ -1395,6 +1526,251 @@ function createEditProfileModal() {
       }
     });
   }
+  
+  // ESC key to close modal
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+      const modal = document.getElementById('edit-profile-modal');
+      if (modal && !modal.classList.contains('hidden')) {
+        closeEditProfileModal();
+      }
+    }
+  });
+}
+
+// ==================== FORM STATE TRACKING ====================
+let __originalFormData = {};
+
+function initializeProfileForm() {
+  // Store original values
+  const nameInput = document.getElementById('edit-name');
+  const emailInput = document.getElementById('edit-email');
+  const phoneInput = document.getElementById('edit-phone');
+  
+  if (nameInput && emailInput) {
+    __originalFormData = {
+      name: nameInput.value || '',
+      email: emailInput.value || '',
+      phone: phoneInput?.value || ''
+    };
+    
+    // Add input listeners for change tracking
+    [nameInput, emailInput, phoneInput].forEach(input => {
+      if (input) {
+        input.addEventListener('input', checkFormChanges);
+        input.addEventListener('blur', () => validateField(input.id));
+      }
+    });
+    
+    // Phone number validation - digits only
+    if (phoneInput) {
+      phoneInput.addEventListener('input', (e) => {
+        e.target.value = e.target.value.replace(/\D/g, '');
+        validateField('edit-phone');
+        checkFormChanges();
+      });
+    }
+    
+    // Email validation
+    if (emailInput) {
+      emailInput.addEventListener('input', () => {
+        validateField('edit-email');
+        checkFormChanges();
+      });
+    }
+  }
+}
+
+function checkFormChanges() {
+  const nameInput = document.getElementById('edit-name');
+  const emailInput = document.getElementById('edit-email');
+  const phoneInput = document.getElementById('edit-phone');
+  const submitBtn = document.getElementById('edit-profile-submit-btn');
+  
+  if (!nameInput || !emailInput || !submitBtn) return;
+  
+  const currentData = {
+    name: nameInput.value.trim(),
+    email: emailInput.value.trim(),
+    phone: phoneInput?.value.trim() || ''
+  };
+  
+  const hasChanges = 
+    currentData.name !== __originalFormData.name ||
+    currentData.email !== __originalFormData.email ||
+    currentData.phone !== __originalFormData.phone;
+  
+  // Enable/disable save button based on changes and validation
+  const isValid = validateAllFields();
+  submitBtn.disabled = !hasChanges || !isValid;
+  submitBtn.setAttribute('aria-disabled', (!hasChanges || !isValid).toString());
+}
+
+function validateField(fieldId) {
+  const field = document.getElementById(fieldId);
+  if (!field) return true;
+  
+  const value = field.value.trim();
+  let isValid = true;
+  let errorMessage = '';
+  
+  switch(fieldId) {
+    case 'edit-name':
+      if (!value) {
+        isValid = false;
+        errorMessage = 'Name is required';
+      }
+      break;
+      
+    case 'edit-email':
+      if (!value) {
+        isValid = false;
+        errorMessage = 'Email is required';
+      } else {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(value)) {
+          isValid = false;
+          errorMessage = 'Please enter a valid email address';
+        }
+      }
+      break;
+      
+    case 'edit-phone':
+      if (value && !/^\d+$/.test(value)) {
+        isValid = false;
+        errorMessage = 'Phone number must contain only digits';
+      }
+      break;
+      
+    case 'verification-code':
+      if (value && value.length < 6) {
+        isValid = false;
+        errorMessage = 'Verification code must be 6 digits';
+      }
+      break;
+      
+    case 'code-new-password':
+      if (value && value.length < 6) {
+        isValid = false;
+        errorMessage = 'Password must be at least 6 characters';
+      }
+      break;
+      
+    case 'code-confirm-password':
+      const newPass = document.getElementById('code-new-password')?.value;
+      if (value && value !== newPass) {
+        isValid = false;
+        errorMessage = 'Passwords do not match';
+      }
+      break;
+  }
+  
+  // Update field styling
+  if (isValid) {
+    field.classList.remove('border-red-300');
+    field.classList.add('border-gray-200');
+    field.setAttribute('aria-invalid', 'false');
+  } else {
+    field.classList.remove('border-gray-200');
+    field.classList.add('border-red-300');
+    field.setAttribute('aria-invalid', 'true');
+  }
+  
+  // Show/hide error message
+  const errorEl = document.getElementById(fieldId + '-error');
+  const successEl = document.getElementById(fieldId + '-success');
+  
+  if (errorEl) {
+    if (isValid || !value) {
+      errorEl.classList.add('hidden');
+      errorEl.textContent = '';
+    } else {
+      errorEl.classList.remove('hidden');
+      errorEl.textContent = errorMessage;
+    }
+  }
+  
+  if (successEl && isValid && value && fieldId !== 'code-new-password' && fieldId !== 'code-confirm-password') {
+    successEl.classList.remove('hidden');
+    successEl.textContent = 'Looks good!';
+    setTimeout(() => successEl.classList.add('hidden'), 2000);
+  }
+  
+  return isValid;
+}
+
+function validateAllFields() {
+  const nameValid = validateField('edit-name');
+  const emailValid = validateField('edit-email');
+  const phoneValid = validateField('edit-phone');
+  return nameValid && emailValid && phoneValid;
+}
+
+function validatePasswordFields() {
+  const newPass = document.getElementById('code-new-password');
+  const confirmPass = document.getElementById('code-confirm-password');
+  const changeBtn = document.getElementById('change-password-btn');
+  
+  if (!newPass || !confirmPass || !changeBtn) return;
+  
+  const newPassValue = newPass.value.trim();
+  const confirmPassValue = confirmPass.value.trim();
+  
+  const newPassValid = validateField('code-new-password');
+  const confirmPassValid = validateField('code-confirm-password');
+  
+  // Enable change button only if:
+  // 1. Code is verified
+  // 2. New password is at least 6 chars
+  // 3. Passwords match
+  const canChange = __passwordCodeVerified && 
+                    newPassValue.length >= 6 && 
+                    newPassValue === confirmPassValue &&
+                    newPassValid && confirmPassValid;
+  
+  changeBtn.disabled = !canChange;
+  changeBtn.setAttribute('aria-disabled', (!canChange).toString());
+}
+
+function validateVerificationCode() {
+  const codeInput = document.getElementById('verification-code');
+  if (!codeInput) return;
+  
+  const code = codeInput.value.trim();
+  const isValid = code.length === 6 && /^\d{6}$/.test(code);
+  
+  validateField('verification-code');
+  validatePasswordFields();
+  
+  return isValid;
+}
+
+// ==================== PASSWORD VISIBILITY TOGGLE ====================
+function togglePasswordVisibility(inputId, buttonId) {
+  const input = document.getElementById(inputId);
+  const button = document.getElementById(buttonId);
+  
+  if (!input || !button) return;
+  
+  const isPassword = input.type === 'password';
+  input.type = isPassword ? 'text' : 'password';
+  
+  // Update icon
+  const svg = button.querySelector('svg');
+  if (svg) {
+    if (isPassword) {
+      // Show eye-slash icon
+      svg.innerHTML = `
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.132m0 0L21 21"></path>
+      `;
+    } else {
+      // Show eye icon
+      svg.innerHTML = `
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+      `;
+    }
+  }
 }
 
 function closeEditProfileModal(event) {
@@ -1402,8 +1778,16 @@ function closeEditProfileModal(event) {
   
   const modal = document.getElementById('edit-profile-modal');
   if (modal) {
-    modal.classList.add('hidden');
-    modal.classList.remove('flex');
+    // Animate out
+    modal.classList.add('opacity-0');
+    const modalContent = modal.querySelector('div > div');
+    if (modalContent) modalContent.classList.add('scale-95');
+    
+    setTimeout(() => {
+      modal.classList.add('hidden');
+      modal.classList.remove('flex', 'opacity-0');
+      if (modalContent) modalContent.classList.remove('scale-95');
+    }, 300);
   }
   
   // Reset form
@@ -1412,7 +1796,7 @@ function closeEditProfileModal(event) {
   
   hideEditProfileError();
   
-  // Also reset code flow state on close
+  // Reset code flow state on close
   __passwordCodeVerified = false;
   __codeRequested = false;
   setCodeVerifiedUI(false);
@@ -1422,6 +1806,12 @@ function closeEditProfileModal(event) {
   if (__codeInputClose) __codeInputClose.value = '';
   if (__codeGroupClose) __codeGroupClose.classList.add('hidden');
   if (__changeBtnClose) __changeBtnClose.disabled = true;
+  
+  // Clear all inline errors
+  document.querySelectorAll('[id$="-error"], [id$="-success"]').forEach(el => {
+    el.classList.add('hidden');
+    el.textContent = '';
+  });
 }
 
 async function saveProfile(event) {
@@ -1629,10 +2019,28 @@ async function requestPasswordCode() {
 function setCodeVerifiedUI(isVerified) {
   const badge = document.getElementById('code-status-badge');
   const changeBtn = document.getElementById('change-password-btn');
+  const codeSuccess = document.getElementById('verification-code-success');
+  const codeError = document.getElementById('verification-code-error');
+  
   if (badge) {
     if (isVerified) badge.classList.remove('hidden'); else badge.classList.add('hidden');
   }
-  if (changeBtn) changeBtn.disabled = !isVerified;
+  
+  if (codeSuccess) {
+    if (isVerified) {
+      codeSuccess.classList.remove('hidden');
+      codeSuccess.textContent = '✓ Code verified successfully!';
+    } else {
+      codeSuccess.classList.add('hidden');
+    }
+  }
+  
+  if (codeError && !isVerified) {
+    codeError.classList.add('hidden');
+  }
+  
+  // Update button state (will be further validated by validatePasswordFields)
+  validatePasswordFields();
 }
 
 async function verifyPasswordCode() {
@@ -1720,10 +2128,27 @@ async function changePasswordWithCode() {
     }
     showToast('Password changed successfully!', 'success');
     __passwordCodeVerified = false;
+    __codeRequested = false;
     setCodeVerifiedUI(false);
-    // Clear inputs
+    
+    // Clear inputs and hide verification code group
     const fields = ['verification-code', 'code-new-password', 'code-confirm-password'];
-    fields.forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+    fields.forEach(id => { 
+      const el = document.getElementById(id); 
+      if (el) {
+        el.value = '';
+        const errorEl = document.getElementById(id + '-error');
+        if (errorEl) errorEl.classList.add('hidden');
+      }
+    });
+    
+    const codeGroup = document.getElementById('verification-code-group');
+    if (codeGroup) codeGroup.classList.add('hidden');
+    
+    // Reset form tracking
+    setTimeout(() => {
+      initializeProfileForm();
+    }, 100);
   } catch (e) {
     showToast(e.message || 'Failed to change password', 'error');
   } finally {

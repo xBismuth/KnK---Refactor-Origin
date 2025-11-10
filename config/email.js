@@ -16,10 +16,10 @@ if (!process.env.RESEND_API_KEY) {
 }
 
 // Get the from email address
-// Default to Resend's test domain (works without verification)
-// For production with custom domain, set RESEND_FROM_EMAIL in .env
-// Example: RESEND_FROM_EMAIL=noreply@kusinanikatya.ph
-const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
+// Always use Resend's free domain (works without verification)
+// If RESEND_FROM_EMAIL is set but not verified, it will cause errors
+// Force use of onboarding@resend.dev to avoid verification issues
+const FROM_EMAIL = 'onboarding@resend.dev';
 const FROM_NAME = process.env.RESEND_FROM_NAME || 'Kusina ni Katya';
 
 // Domain configuration
@@ -27,17 +27,10 @@ const FROM_NAME = process.env.RESEND_FROM_NAME || 'Kusina ni Katya';
 // Email domain (kusinanikatya.ph) must be verified separately in Resend
 const DOMAIN = 'kusinanikatya.up.railway.app'; // Application hosting domain
 
-// Domain verification status
-if (process.env.RESEND_FROM_EMAIL && !process.env.RESEND_FROM_EMAIL.includes('resend.dev')) {
-  const emailDomain = process.env.RESEND_FROM_EMAIL.split('@')[1];
-  console.log(`✅ Using verified domain: ${emailDomain}`);
-  console.log(`📧 Emails will be sent from: ${process.env.RESEND_FROM_EMAIL}`);
-  console.log(`🌐 Application domain: ${DOMAIN}`);
-} else {
-  console.log(`📧 Using Resend free domain: onboarding@resend.dev (no verification needed)`);
-  console.log(`🌐 Application domain: ${DOMAIN}`);
-  console.log('✅ Ready to send emails - no domain verification required!');
-}
+// Always use Resend free domain (no verification needed)
+console.log(`📧 Using Resend free domain: ${FROM_EMAIL} (no verification needed)`);
+console.log(`🌐 Application domain: ${DOMAIN}`);
+console.log('✅ Ready to send emails - no domain verification required!');
 
 // Export Resend client and helper functions
 module.exports = { 

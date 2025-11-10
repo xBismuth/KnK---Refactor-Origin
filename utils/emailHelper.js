@@ -1,9 +1,16 @@
 // ==================== EMAIL HELPER FUNCTIONS ====================
-const { sendEmail } = require('../config/email');
+const { emailTransporter } = require('../config/email');
 
 // Send verification email
 async function sendVerificationEmail(toEmail, code, userName = 'Valued Customer') {
-  const html = `
+  const mailOptions = {
+    from: {
+      name: 'Kusina ni Katya',
+      address: process.env.MAIL_USER
+    },
+    to: toEmail,
+    subject: 'Your Verification Code - Kusina ni Katya',
+    html: `
       <!DOCTYPE html>
       <html>
       <head>
@@ -54,19 +61,41 @@ async function sendVerificationEmail(toEmail, code, userName = 'Valued Customer'
         </div>
       </body>
       </html>
-    `;
+    `
+  };
 
-  try {
-    return await sendEmail(toEmail, 'Your Verification Code - Kusina ni Katya', html, 'Kusina ni Katya');
-  } catch (error) {
-    console.error(`❌ Error sending verification email to ${toEmail}:`, error.message);
-    throw error;
-  }
+  const sendWithRetry = async (attempts = 3) => {
+    let lastErr;
+    for (let i = 1; i <= attempts; i++) {
+      try {
+        const info = await emailTransporter.sendMail(mailOptions);
+        console.log(`✅ Verification email sent to ${toEmail}:`, info.messageId);
+        return { success: true, messageId: info.messageId };
+      } catch (error) {
+        lastErr = error;
+        console.warn(`📧 Send attempt ${i} failed for ${toEmail}: ${error.message}`);
+        // Exponential backoff: 500ms, 1000ms, 2000ms
+        if (i < attempts) {
+          await new Promise(r => setTimeout(r, 500 * Math.pow(2, i - 1)));
+        }
+      }
+    }
+    console.error(`❌ Error sending email to ${toEmail} after retries:`, lastErr?.message);
+    throw lastErr;
+  };
+  return sendWithRetry();
 }
 
 // Send login verification email
 async function sendLoginVerificationEmail(toEmail, code, userName = 'Valued Customer') {
-  const html = `
+  const mailOptions = {
+    from: {
+      name: 'Kusina ni Katya',
+      address: process.env.MAIL_USER
+    },
+    to: toEmail,
+    subject: 'Login Verification Code - Kusina ni Katya',
+    html: `
       <!DOCTYPE html>
       <html>
       <head>
@@ -116,19 +145,38 @@ async function sendLoginVerificationEmail(toEmail, code, userName = 'Valued Cust
         </div>
       </body>
       </html>
-    `;
+    `
+  };
 
-  try {
-    return await sendEmail(toEmail, 'Login Verification Code - Kusina ni Katya', html, 'Kusina ni Katya');
-  } catch (error) {
-    console.error(`❌ Error sending login verification email to ${toEmail}:`, error.message);
-    throw error;
-  }
+  const sendWithRetry = async (attempts = 3) => {
+    let lastErr;
+    for (let i = 1; i <= attempts; i++) {
+      try {
+        const info = await emailTransporter.sendMail(mailOptions);
+        console.log(`✅ Login verification email sent to ${toEmail}:`, info.messageId);
+        return { success: true, messageId: info.messageId };
+      } catch (error) {
+        lastErr = error;
+        console.warn(`📧 Login email attempt ${i} failed for ${toEmail}: ${error.message}`);
+        await new Promise(r => setTimeout(r, 500 * Math.pow(2, i - 1)));
+      }
+    }
+    console.error(`❌ Error sending login email to ${toEmail} after retries:`, lastErr?.message);
+    throw lastErr;
+  };
+  return sendWithRetry();
 }
 
 // Send password reset email
 async function sendPasswordResetEmail(toEmail, code, userName = 'Valued Customer') {
-  const html = `
+  const mailOptions = {
+    from: {
+      name: 'Kusina ni Katya',
+      address: process.env.MAIL_USER
+    },
+    to: toEmail,
+    subject: 'Password Reset Code - Kusina ni Katya',
+    html: `
       <!DOCTYPE html>
       <html>
       <head>
@@ -178,21 +226,41 @@ async function sendPasswordResetEmail(toEmail, code, userName = 'Valued Customer
         </div>
       </body>
       </html>
-    `;
+    `
+  };
 
-  try {
-    return await sendEmail(toEmail, 'Password Reset Code - Kusina ni Katya', html, 'Kusina ni Katya');
-  } catch (error) {
-    console.error(`❌ Error sending password reset email to ${toEmail}:`, error.message);
-    throw error;
-  }
+  const sendWithRetry = async (attempts = 3) => {
+    let lastErr;
+    for (let i = 1; i <= attempts; i++) {
+      try {
+        const info = await emailTransporter.sendMail(mailOptions);
+        console.log(`✅ Password reset email sent to ${toEmail}:`, info.messageId);
+        return { success: true, messageId: info.messageId };
+      } catch (error) {
+        lastErr = error;
+        console.warn(`📧 Reset email attempt ${i} failed for ${toEmail}: ${error.message}`);
+        await new Promise(r => setTimeout(r, 500 * Math.pow(2, i - 1)));
+      }
+    }
+    console.error(`❌ Error sending password reset email to ${toEmail} after retries:`, lastErr?.message);
+    throw lastErr;
+  };
+  return sendWithRetry();
 }
 
 // Send contact form notification to admin
 async function sendContactNotification(data) {
   const { name, email, phone, subject, message } = data;
 
-  const html = `
+  const mailOptions = {
+    from: {
+      name: 'Kusina ni Katya Contact Form',
+      address: process.env.MAIL_USER
+    },
+    to: process.env.MAIL_USER, // Send to yourself (admin)
+    replyTo: email,
+    subject: `New Contact Form: ${subject}`,
+    html: `
       <!DOCTYPE html>
       <html>
       <head>
@@ -247,18 +315,29 @@ async function sendContactNotification(data) {
         </div>
       </body>
       </html>
-    `;
+    `
+  };
 
-  try {
-    const adminEmail = process.env.MAIL_USER || process.env.RESEND_FROM_EMAIL;
-    if (!adminEmail) {
-      throw new Error('Admin email not configured');
+  const sendWithRetry = async (attempts = 3) => {
+    let lastErr;
+    for (let i = 1; i <= attempts; i++) {
+      try {
+        const info = await emailTransporter.sendMail(mailOptions);
+        console.log('✅ Contact notification sent:', info.messageId);
+        return { success: true, messageId: info.messageId };
+      } catch (error) {
+        lastErr = error;
+        console.warn(`📧 Contact notification attempt ${i} failed: ${error.message}`);
+        // Exponential backoff: 500ms, 1000ms, 2000ms
+        if (i < attempts) {
+          await new Promise(r => setTimeout(r, 500 * Math.pow(2, i - 1)));
+        }
+      }
     }
-    return await sendEmail(adminEmail, `New Contact Form: ${subject}`, html, 'Kusina ni Katya Contact Form');
-  } catch (error) {
-    console.error(`❌ Error sending contact notification:`, error.message);
-    throw error;
-  }
+    console.error('❌ Error sending contact notification after retries:', lastErr?.message);
+    throw lastErr;
+  };
+  return sendWithRetry();
 }
 
 module.exports = {

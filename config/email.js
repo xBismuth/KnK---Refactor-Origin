@@ -26,9 +26,9 @@ const SMTP_CONFIG_465 = {
     user: GMAIL_USER,
     pass: GMAIL_PASS
   },
-  connectionTimeout: 10000, // 10 seconds - Railway compatible
-  socketTimeout: 10000, // 10 seconds - prevent hanging connections
-  greetingTimeout: 10000, // 10 seconds
+  connectionTimeout: 30000, // 30 seconds - increased for Railway compatibility
+  socketTimeout: 30000, // 30 seconds - prevent hanging connections
+  greetingTimeout: 30000, // 30 seconds
   // Connection pooling for better performance on Railway
   pool: true,
   maxConnections: 5,
@@ -51,9 +51,9 @@ const SMTP_CONFIG_587 = {
     user: GMAIL_USER,
     pass: GMAIL_PASS
   },
-  connectionTimeout: 10000,
-  socketTimeout: 10000,
-  greetingTimeout: 10000,
+  connectionTimeout: 30000, // 30 seconds - increased for Railway
+  socketTimeout: 30000, // 30 seconds
+  greetingTimeout: 30000, // 30 seconds
   pool: true,
   maxConnections: 5,
   maxMessages: 100,
@@ -61,7 +61,8 @@ const SMTP_CONFIG_587 = {
   rateLimit: 18,
   requireTLS: true,
   tls: {
-    rejectUnauthorized: false
+    rejectUnauthorized: false,
+    ciphers: 'SSLv3'
   }
 };
 
@@ -70,10 +71,11 @@ let transporter = null;
 let currentPort = null;
 
 /**
- * Create transporter with fallback logic
+ * Create transporter with fallback logic (async version)
  * Railway.com supports both ports 465 and 587 for outbound SMTP
+ * @returns {Promise<object|null>} Transporter instance or null if failed
  */
-function createTransporter() {
+async function createTransporter() {
   if (!GMAIL_USER || !GMAIL_PASS) {
     return null;
   }
@@ -82,70 +84,99 @@ function createTransporter() {
   try {
     const transporter465 = nodemailer.createTransport(SMTP_CONFIG_465);
     
-    // Test connection
-    transporter465.verify(function (error, success) {
-      if (error) {
-        console.warn(`⚠️ Port 465 (SSL) connection failed: ${error.message}`);
-        console.log('🔄 Attempting fallback to port 587 (TLS)...');
+    // Test connection with promise wrapper
+    try {
+      await new Promise((resolve, reject) => {
+        transporter465.verify(function (error, success) {
+          if (error) {
+            reject(error);
+          } else {
+            resolve(success);
+          }
+        });
+      });
+      
+      // Success on port 465
+      console.log('✅ Gmail SMTP connected via port 465 (SSL)');
+      console.log(`📧 Using Gmail: ${GMAIL_USER}`);
+      console.log(`✅ Railway.com compatible - emails will work!`);
+      console.log(`✅ Can send emails to any recipient (500/day limit)`);
+      transporter = transporter465;
+      currentPort = 465;
+      return transporter465;
+    } catch (error) {
+      console.warn(`⚠️ Port 465 (SSL) connection failed: ${error.message}`);
+      console.log('🔄 Attempting fallback to port 587 (TLS)...');
+      
+      // Close the failed transporter
+      transporter465.close();
+      
+      // Fallback to port 587 (Railway also supports this)
+      try {
+        const transporter587 = nodemailer.createTransport(SMTP_CONFIG_587);
         
-        // Fallback to port 587 (Railway also supports this)
-        try {
-          const transporter587 = nodemailer.createTransport(SMTP_CONFIG_587);
+        await new Promise((resolve, reject) => {
           transporter587.verify(function (error587, success587) {
             if (error587) {
-              console.error('❌ Port 587 (TLS) also failed:', error587.message);
-              console.error('💡 Check your Gmail App Password and network settings');
-              console.error('💡 Railway.com supports SMTP - verify your App Password is correct');
+              reject(error587);
             } else {
-              console.log('✅ Gmail SMTP connected via port 587 (TLS fallback)');
-              console.log(`📧 Using Gmail: ${GMAIL_USER}`);
-              console.log(`✅ Railway.com compatible - emails will work!`);
-              transporter = transporter587;
-              currentPort = 587;
+              resolve(success587);
             }
           });
-        } catch (err587) {
-          console.error('❌ Failed to create transporter on port 587:', err587.message);
-        }
-      } else {
-        console.log('✅ Gmail SMTP connected via port 465 (SSL)');
+        });
+        
+        // Success on port 587
+        console.log('✅ Gmail SMTP connected via port 587 (TLS fallback)');
         console.log(`📧 Using Gmail: ${GMAIL_USER}`);
         console.log(`✅ Railway.com compatible - emails will work!`);
-        console.log(`✅ Can send emails to any recipient (500/day limit)`);
-        transporter = transporter465;
-        currentPort = 465;
+        transporter = transporter587;
+        currentPort = 587;
+        return transporter587;
+      } catch (error587) {
+        console.error('❌ Port 587 (TLS) also failed:', error587.message);
+        console.error('💡 Check your Gmail App Password and network settings');
+        console.error('💡 Railway.com supports SMTP - verify your App Password is correct');
+        if (transporter587) {
+          transporter587.close();
+        }
+        return null;
       }
-    });
-    
-    return transporter465; // Return initial transporter, will be updated if fallback needed
+    }
   } catch (error) {
     console.error('❌ Failed to create transporter:', error.message);
     return null;
   }
 }
 
-if (GMAIL_USER && GMAIL_PASS) {
-  // Verify Gmail account setup
-  if (!GMAIL_PASS.startsWith('G') && GMAIL_PASS.length !== 16) {
-    console.warn('⚠️ WARNING: GMAIL_PASS/MAIL_PASS should be a 16-character App Password');
-    console.warn('💡 Make sure you:');
-    console.warn('   1. Enabled 2-Step Verification: https://myaccount.google.com/security');
-    console.warn('   2. Generated an App Password: https://myaccount.google.com/apppasswords');
-    console.warn('   3. Using the App Password (not your regular Gmail password)');
+// Initialize transporter asynchronously
+(async function initializeEmail() {
+  if (GMAIL_USER && GMAIL_PASS) {
+    // Verify Gmail account setup
+    if (!GMAIL_PASS.startsWith('G') && GMAIL_PASS.length !== 16) {
+      console.warn('⚠️ WARNING: GMAIL_PASS/MAIL_PASS should be a 16-character App Password');
+      console.warn('💡 Make sure you:');
+      console.warn('   1. Enabled 2-Step Verification: https://myaccount.google.com/security');
+      console.warn('   2. Generated an App Password: https://myaccount.google.com/apppasswords');
+      console.warn('   3. Using the App Password (not your regular Gmail password)');
+    }
+    
+    // Create transporter asynchronously
+    transporter = await createTransporter();
+    if (!transporter) {
+      console.error('❌ Failed to initialize email transporter. Emails will not work.');
+    }
+  } else {
+    console.error('❌ Email service not configured!');
+    console.error('💡 Gmail Setup (Free, No Domain Verification):');
+    console.error('   1. Enable 2-Step Verification: https://myaccount.google.com/security');
+    console.error('   2. Generate App Password: https://myaccount.google.com/apppasswords');
+    console.error('   3. Add to .env (use either MAIL_* or GMAIL_*):');
+    console.error('      GMAIL_USER=your-email@gmail.com');
+    console.error('      GMAIL_PASS=your-16-character-app-password');
+    console.error('      FROM_EMAIL=your-email@gmail.com');
+    console.error('      FROM_NAME=Kusina Ni Katya');
   }
-  
-  transporter = createTransporter();
-} else {
-  console.error('❌ Email service not configured!');
-  console.error('💡 Gmail Setup (Free, No Domain Verification):');
-  console.error('   1. Enable 2-Step Verification: https://myaccount.google.com/security');
-  console.error('   2. Generate App Password: https://myaccount.google.com/apppasswords');
-  console.error('   3. Add to .env (use either MAIL_* or GMAIL_*):');
-  console.error('      GMAIL_USER=your-email@gmail.com');
-  console.error('      GMAIL_PASS=your-16-character-app-password');
-  console.error('      FROM_EMAIL=your-email@gmail.com');
-  console.error('      FROM_NAME=Kusina Ni Katya');
-}
+})();
 
 console.log(`🌐 Application domain: ${DOMAIN}`);
 

@@ -21,8 +21,8 @@ const dbConfig = {
   keepAliveInitialDelay: 0,
   // Reconnect on connection loss
   reconnect: true,
-  // Close idle connections after 30 minutes
-  idleTimeout: 1800000,
+  // Close idle connections after 1 hour (increased to prevent premature closure)
+  idleTimeout: 3600000, // 1 hour
   // Multiple statements (disabled for security)
   multipleStatements: false
 };
@@ -43,7 +43,7 @@ if (process.env.MYSQL_URL) {
 
 const db = mysql.createPool(dbConfig);
 
-// Handle pool errors
+// Handle pool errors and keep connections alive
 db.on('connection', (connection) => {
   console.log(`🔌 New MySQL connection established: ${connection.threadId}`);
   
@@ -54,6 +54,17 @@ db.on('connection', (connection) => {
     }
   });
 });
+
+// Set up periodic keep-alive query at pool level (every 4 minutes to prevent timeout)
+// MySQL wait_timeout is typically 8 hours, but we ping every 4 minutes to be safe
+const keepAliveInterval = setInterval(async () => {
+  try {
+    await db.query('SELECT 1');
+    // Connection pool is alive - silently succeed
+  } catch (err) {
+    console.error('❌ MySQL keep-alive query failed:', err.message);
+  }
+}, 4 * 60 * 1000); // 4 minutes
 
 // Handle pool errors
 db.on('error', (err) => {
@@ -71,9 +82,10 @@ db.getConnection()
     console.error('Full error:', err);
   });
 
-// Graceful shutdown handler
+// Graceful shutdown handler (merged with keep-alive cleanup)
 process.on('SIGINT', async () => {
   console.log('\n🛑 Closing database pool...');
+  clearInterval(keepAliveInterval);
   try {
     await db.end();
     console.log('✅ Database pool closed gracefully');
@@ -86,6 +98,7 @@ process.on('SIGINT', async () => {
 
 process.on('SIGTERM', async () => {
   console.log('\n🛑 Closing database pool...');
+  clearInterval(keepAliveInterval);
   try {
     await db.end();
     console.log('✅ Database pool closed gracefully');

@@ -10,57 +10,125 @@ const GMAIL_PASS = process.env.GMAIL_PASS || process.env.EMAIL_PASS; // App Pass
 
 // Get the from email address
 const FROM_EMAIL = process.env.FROM_EMAIL || GMAIL_USER;
-const FROM_NAME = process.env.FROM_NAME || 'Kusina ni Katya';
+const FROM_NAME = process.env.FROM_NAME || 'Kusina Ni Katya';
 
 // Domain configuration
 const DOMAIN = process.env.DOMAIN || 'kusinanikatya.up.railway.app';
 
+// SMTP Configuration Options
+const SMTP_CONFIG_465 = {
+  host: 'smtp.gmail.com',
+  port: 465,
+  secure: true, // true for port 465 (SSL)
+  auth: {
+    user: GMAIL_USER,
+    pass: GMAIL_PASS
+  },
+  connectionTimeout: 10000, // 10 seconds
+  socketTimeout: 10000, // 10 seconds - prevent hanging connections
+  greetingTimeout: 10000, // 10 seconds
+  // Connection pooling for better performance
+  pool: true,
+  maxConnections: 5,
+  maxMessages: 100,
+  // Rate limiting
+  rateDelta: 1000,
+  rateLimit: 18, // Safe limit below Gmail's 20/sec
+  // TLS settings
+  tls: {
+    rejectUnauthorized: false
+  },
+  requireTLS: true
+};
+
+const SMTP_CONFIG_587 = {
+  host: 'smtp.gmail.com',
+  port: 587,
+  secure: false, // false for port 587 (TLS)
+  auth: {
+    user: GMAIL_USER,
+    pass: GMAIL_PASS
+  },
+  connectionTimeout: 10000,
+  socketTimeout: 10000,
+  greetingTimeout: 10000,
+  pool: true,
+  maxConnections: 5,
+  maxMessages: 100,
+  rateDelta: 1000,
+  rateLimit: 18,
+  requireTLS: true,
+  tls: {
+    rejectUnauthorized: false
+  }
+};
+
 // Initialize Nodemailer transporter (Gmail SMTP)
 let transporter = null;
+let currentPort = null;
+
+/**
+ * Create transporter with fallback logic
+ */
+function createTransporter() {
+  if (!GMAIL_USER || !GMAIL_PASS) {
+    return null;
+  }
+
+  // Try port 465 first (SSL)
+  try {
+    const transporter465 = nodemailer.createTransport(SMTP_CONFIG_465);
+    
+    // Test connection
+    transporter465.verify(function (error, success) {
+      if (error) {
+        console.warn(`⚠️ Port 465 (SSL) connection failed: ${error.message}`);
+        console.log('🔄 Attempting fallback to port 587 (TLS)...');
+        
+        // Fallback to port 587
+        try {
+          const transporter587 = nodemailer.createTransport(SMTP_CONFIG_587);
+          transporter587.verify(function (error587, success587) {
+            if (error587) {
+              console.error('❌ Port 587 (TLS) also failed:', error587.message);
+              console.error('💡 Check your Gmail App Password and network settings');
+            } else {
+              console.log('✅ Gmail SMTP connected via port 587 (TLS fallback)');
+              console.log(`📧 Using Gmail: ${GMAIL_USER}`);
+              transporter = transporter587;
+              currentPort = 587;
+            }
+          });
+        } catch (err587) {
+          console.error('❌ Failed to create transporter on port 587:', err587.message);
+        }
+      } else {
+        console.log('✅ Gmail SMTP connected via port 465 (SSL)');
+        console.log(`📧 Using Gmail: ${GMAIL_USER}`);
+        console.log(`✅ Can send emails to any recipient (500/day limit)`);
+        transporter = transporter465;
+        currentPort = 465;
+      }
+    });
+    
+    return transporter465; // Return initial transporter, will be updated if fallback needed
+  } catch (error) {
+    console.error('❌ Failed to create transporter:', error.message);
+    return null;
+  }
+}
 
 if (GMAIL_USER && GMAIL_PASS) {
-  // Use direct SMTP configuration for faster connection and better control
-  transporter = nodemailer.createTransport({
-    host: 'smtp.gmail.com',
-    port: 465,
-    secure: true, // Use SSL
-    auth: {
-      user: GMAIL_USER,
-      pass: GMAIL_PASS // Use App Password, not regular password
-    },
-    // Optimize for speed - connection pooling
-    pool: true, // Enable connection pooling
-    maxConnections: 5, // Maximum concurrent connections
-    maxMessages: 100, // Messages per connection before closing
-    // Faster timeouts
-    connectionTimeout: 3000, // 3 seconds (reduced from 5)
-    greetingTimeout: 3000, // 3 seconds (reduced from 5)
-    socketTimeout: 3000, // 3 seconds (reduced from 5)
-    // Rate limiting (Gmail allows ~20 emails/second)
-    rateDelta: 1000, // 1 second window
-    rateLimit: 18, // 18 emails per second (safe limit)
-    // TLS optimization
-    tls: {
-      rejectUnauthorized: false // Accept certificates
-    },
-    // Keep connection alive
-    requireTLS: true
-  });
-
-  // Verify connection asynchronously (non-blocking)
-  transporter.verify(function (error, success) {
-    if (error) {
-      console.error('❌ Gmail SMTP connection failed:', error.message);
-      console.error('💡 Make sure you:');
-      console.error('   1. Enabled 2-Step Verification on your Gmail account');
-      console.error('   2. Generated an App Password at: https://myaccount.google.com/apppasswords');
-      console.error('   3. Set GMAIL_USER and GMAIL_PASS in your .env file');
-    } else {
-      console.log('✅ Gmail SMTP email service initialized (optimized for speed)');
-      console.log(`📧 Using Gmail: ${GMAIL_USER}`);
-      console.log(`✅ Can send emails to any recipient (500/day limit)`);
-    }
-  });
+  // Verify Gmail account setup
+  if (!GMAIL_PASS.startsWith('G') && GMAIL_PASS.length !== 16) {
+    console.warn('⚠️ WARNING: GMAIL_PASS should be a 16-character App Password');
+    console.warn('💡 Make sure you:');
+    console.warn('   1. Enabled 2-Step Verification: https://myaccount.google.com/security');
+    console.warn('   2. Generated an App Password: https://myaccount.google.com/apppasswords');
+    console.warn('   3. Using the App Password (not your regular Gmail password)');
+  }
+  
+  transporter = createTransporter();
 } else {
   console.error('❌ Email service not configured!');
   console.error('💡 Gmail Setup (Free, No Domain Verification):');
@@ -68,7 +136,7 @@ if (GMAIL_USER && GMAIL_PASS) {
   console.error('   2. Generate App Password: https://myaccount.google.com/apppasswords');
   console.error('   3. Add to .env:');
   console.error('      GMAIL_USER=your-email@gmail.com');
-  console.error('      GMAIL_PASS=your-app-password');
+  console.error('      GMAIL_PASS=your-16-character-app-password');
   console.error('      FROM_EMAIL=your-email@gmail.com');
 }
 
@@ -79,5 +147,7 @@ module.exports = {
   transporter,
   FROM_EMAIL,
   FROM_NAME,
-  DOMAIN
+  DOMAIN,
+  currentPort,
+  createTransporter // Export for retry logic
 };

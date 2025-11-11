@@ -1,15 +1,16 @@
 // ==================== EMAIL HELPER FUNCTIONS ====================
 // Using Nodemailer with Gmail SMTP (FREE - No domain verification needed!)
-const { transporter, FROM_EMAIL, FROM_NAME } = require('../config/email');
+const { transporter, FROM_EMAIL, FROM_NAME, createTransporter, currentPort } = require('../config/email');
 
 // Email delivery tracking (in-memory store - consider using Redis for production)
 const emailDeliveryStatus = new Map();
 
-// Retry configuration (optimized for speed)
+// Retry configuration (improved for reliability)
 const RETRY_CONFIG = {
-  maxRetries: 2, // Reduced from 3 to 2 for faster failure
-  retryDelay: 300, // Reduced from 1000ms to 300ms for faster retry
-  backoffMultiplier: 1.5 // Reduced from 2 to 1.5 for less delay
+  maxRetries: 5, // Increased to 5 attempts
+  retryDelay: 500, // 500ms base delay
+  backoffMultiplier: 2, // Exponential backoff
+  maxDelay: 5000 // Maximum 5 seconds between retries
 };
 
 /**
@@ -20,17 +21,75 @@ function sleep(ms) {
 }
 
 /**
- * Send email using Gmail SMTP (Nodemailer) - FREE, no domain verification needed
+ * Check if error is retryable
+ */
+function isRetryableError(error) {
+  // Network errors
+  if (error.code === 'ECONNRESET' || 
+      error.code === 'ETIMEDOUT' || 
+      error.code === 'ESOCKETTIMEDOUT' ||
+      error.code === 'ECONNREFUSED' ||
+      error.code === 'EHOSTUNREACH' ||
+      error.code === 'ENOTFOUND') {
+    return true;
+  }
+  
+  // DNS errors
+  if (error.code === 'EDNS' || error.message?.includes('DNS')) {
+    return true;
+  }
+  
+  // Auth errors (retry once)
+  if (error.code === 'EAUTH') {
+    return true;
+  }
+  
+  // Rate limiting
+  if (error.responseCode === 421 || error.responseCode === 450 || error.responseCode === 452) {
+    return true;
+  }
+  
+  // Temporary server errors
+  if (error.responseCode >= 500 && error.responseCode < 600) {
+    return true;
+  }
+  
+  return false;
+}
+
+/**
+ * Check if error suggests port/firewall issue
+ */
+function isPortBlockedError(error) {
+  const blockedMessages = [
+    'ECONNREFUSED',
+    'ETIMEDOUT',
+    'EHOSTUNREACH',
+    'port',
+    'connection refused',
+    'timeout',
+    'firewall'
+  ];
+  
+  const errorStr = JSON.stringify(error).toLowerCase();
+  return blockedMessages.some(msg => errorStr.includes(msg.toLowerCase()));
+}
+
+/**
+ * Send email using Gmail SMTP with improved retry and error handling
  * @param {string} toEmail - Recipient email address
  * @param {string} subject - Email subject
  * @param {string} html - HTML email content
  * @param {number} retryCount - Current retry attempt (internal use)
+ * @param {boolean} useFallbackPort - Whether to try fallback port (internal use)
  * @returns {Promise<{success: boolean, messageId: string, attempts: number}>}
  */
-async function sendEmail(toEmail, subject, html, retryCount = 0) {
+async function sendEmail(toEmail, subject, html, retryCount = 0, useFallbackPort = false) {
+  const timestamp = new Date().toISOString();
+  
   if (!transporter) {
     const error = new Error('Gmail SMTP not configured. Set GMAIL_USER and GMAIL_PASS in .env');
-    console.error(`❌ ${error.message}`);
+    console.error(`[${timestamp}] ❌ ${error.message}`);
     throw error;
   }
 
@@ -55,15 +114,16 @@ async function sendEmail(toEmail, subject, html, retryCount = 0) {
       messageId: messageId,
       toEmail,
       subject,
-      sentAt: new Date().toISOString(),
+      sentAt: timestamp,
       attempts: retryCount + 1,
       status: 'sent',
-      service: 'gmail'
+      service: 'gmail',
+      port: currentPort || 'unknown'
     };
     
     emailDeliveryStatus.set(messageId, deliveryInfo);
     
-    console.log(`✅ Email sent via Gmail to ${toEmail} (ID: ${messageId}, attempts: ${retryCount + 1})`);
+    console.log(`[${timestamp}] ✅ Email sent via Gmail to ${toEmail} (ID: ${messageId}, attempts: ${retryCount + 1}, port: ${currentPort || 'unknown'})`);
     
     return { 
       success: true, 
@@ -72,21 +132,58 @@ async function sendEmail(toEmail, subject, html, retryCount = 0) {
       deliveryInfo
     };
   } catch (error) {
-    // Check if we should retry (network errors, rate limits)
-    const isRetryable = error.code === 'ECONNRESET' || 
-                       error.code === 'ETIMEDOUT' || 
-                       error.code === 'EAUTH' && retryCount === 0; // Retry auth errors once
+    const errorTimestamp = new Date().toISOString();
+    const errorCode = error.code || error.responseCode || 'UNKNOWN';
+    const errorMessage = error.message || 'Unknown error';
     
-    if (isRetryable && retryCount < RETRY_CONFIG.maxRetries) {
-      const delay = RETRY_CONFIG.retryDelay * Math.pow(RETRY_CONFIG.backoffMultiplier, retryCount);
-      console.warn(`⚠️ Email send failed (attempt ${retryCount + 1}/${RETRY_CONFIG.maxRetries}), retrying in ${delay}ms...`, error.message);
-      
-      await sleep(delay);
-      return await sendEmail(toEmail, subject, html, retryCount + 1);
+    console.error(`[${errorTimestamp}] ❌ Email send attempt ${retryCount + 1} failed:`, {
+      code: errorCode,
+      message: errorMessage,
+      to: toEmail
+    });
+    
+    // Check if port might be blocked (firewall issue)
+    if (isPortBlockedError(error) && !useFallbackPort && retryCount === 0) {
+      console.warn(`[${errorTimestamp}] ⚠️ Possible port/firewall issue detected. Attempting port fallback...`);
+      // Try recreating transporter with fallback port
+      const newTransporter = createTransporter();
+      if (newTransporter) {
+        // Wait a bit before retry
+        await sleep(500);
+        return await sendEmail(toEmail, subject, html, retryCount, true);
+      }
     }
     
-    console.error(`❌ Error sending email to ${toEmail} after ${retryCount + 1} attempts:`, error.message);
-    throw error;
+    // Check if we should retry
+    const isRetryable = isRetryableError(error);
+    
+    if (isRetryable && retryCount < RETRY_CONFIG.maxRetries) {
+      const delay = Math.min(
+        RETRY_CONFIG.retryDelay * Math.pow(RETRY_CONFIG.backoffMultiplier, retryCount),
+        RETRY_CONFIG.maxDelay
+      );
+      
+      console.warn(`[${errorTimestamp}] ⚠️ Retrying email send (attempt ${retryCount + 1}/${RETRY_CONFIG.maxRetries}) in ${delay}ms...`);
+      console.warn(`[${errorTimestamp}]    Error: ${errorCode} - ${errorMessage}`);
+      
+      await sleep(delay);
+      return await sendEmail(toEmail, subject, html, retryCount + 1, useFallbackPort);
+    }
+    
+    // Final failure
+    console.error(`[${errorTimestamp}] ❌ Email send failed after ${retryCount + 1} attempts`);
+    console.error(`[${errorTimestamp}]    Final error: ${errorCode} - ${errorMessage}`);
+    
+    // Provide helpful error message
+    if (isPortBlockedError(error)) {
+      throw new Error(`Email sending failed: Port may be blocked by firewall. Check if SMTP ports 465/587 are accessible. Original error: ${errorMessage}`);
+    } else if (error.code === 'EAUTH') {
+      throw new Error(`Email authentication failed: Check your Gmail App Password. Original error: ${errorMessage}`);
+    } else if (error.code === 'ENOTFOUND' || error.code === 'EDNS') {
+      throw new Error(`DNS resolution failed: Check your network connection. Original error: ${errorMessage}`);
+    } else {
+      throw new Error(`Email sending failed after ${retryCount + 1} attempts: ${errorMessage}`);
+    }
   }
 }
 

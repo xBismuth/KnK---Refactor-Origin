@@ -1,7 +1,13 @@
 // ==================== EMAIL SERVICE ====================
 // Using Nodemailer with Gmail SMTP for free, fast email delivery (no domain verification needed)
 const nodemailer = require('nodemailer');
-require('dotenv').config();
+// Load .env file only if it exists (for local development)
+// On Railway, environment variables are injected directly, so dotenv is not needed
+try {
+  require('dotenv').config();
+} catch (err) {
+  // dotenv not available or .env doesn't exist - this is fine for Railway deployment
+}
 
 // Gmail SMTP Configuration (FREE - No domain verification needed!)
 // Limits: 500 emails/day (usually enough for small websites)
@@ -136,8 +142,12 @@ async function createTransporter() {
         console.error('❌ Port 587 (TLS) also failed:', error587.message);
         console.error('💡 Check your Gmail App Password and network settings');
         console.error('💡 Railway.com supports SMTP - verify your App Password is correct');
-        if (transporter587) {
-          transporter587.close();
+        try {
+          if (transporter587) {
+            transporter587.close();
+          }
+        } catch (closeErr) {
+          // Ignore close errors
         }
         return null;
       }

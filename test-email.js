@@ -2,11 +2,15 @@
 // Run this to test your Gmail SMTP configuration
 // Usage: node test-email.js [recipient-email]
 
-require('dotenv').config();
-const { transporter, emailTransporter, FROM_EMAIL, FROM_NAME, currentPort } = require('./config/email');
+// Load .env file only if it exists (for local development)
+// On Railway, environment variables are injected directly, so dotenv is not needed
+try {
+  require('dotenv').config();
+} catch (err) {
+  // dotenv not available or .env doesn't exist - this is fine for Railway deployment
+}
+const { transporter, emailTransporter, FROM_EMAIL, FROM_NAME, currentPort, createTransporter } = require('./config/email');
 const { sendVerificationEmail } = require('./utils/emailHelper');
-
-const activeTransporter = transporter || emailTransporter;
 
 async function testEmailConfiguration() {
   const startTime = Date.now();
@@ -18,13 +22,20 @@ async function testEmailConfiguration() {
   
   // Check environment variables (supports both MAIL_* and GMAIL_*)
   console.log('📋 Configuration Check:');
-  const MAIL_USER = process.env.MAIL_USER || process.env.GMAIL_USER;
-  const MAIL_PASS = process.env.MAIL_PASS || process.env.GMAIL_PASS;
+  const MAIL_USER = process.env.MAIL_USER || process.env.GMAIL_USER || process.env.EMAIL_USER;
+  const MAIL_PASS = process.env.MAIL_PASS || process.env.GMAIL_PASS || process.env.EMAIL_PASS;
   
   console.log(`   MAIL_USER/GMAIL_USER: ${MAIL_USER ? '✅ Set' : '❌ Missing'}`);
   console.log(`   MAIL_PASS/GMAIL_PASS: ${MAIL_PASS ? '✅ Set (hidden)' : '❌ Missing'}`);
   console.log(`   FROM_EMAIL: ${FROM_EMAIL || 'Not set'}`);
   console.log(`   FROM_NAME: ${FROM_NAME || 'Not set'}`);
+  
+  // Check if credentials are missing
+  if (!MAIL_USER || !MAIL_PASS) {
+    console.error('\n❌ Email credentials not found!');
+    console.error('   Make sure MAIL_USER/MAIL_PASS or GMAIL_USER/GMAIL_PASS are set in .env');
+    process.exit(1);
+  }
   
   // Check App Password format
   if (MAIL_PASS) {
@@ -37,13 +48,23 @@ async function testEmailConfiguration() {
     }
   }
   
-  // Check transporter
+  // Wait for transporter to initialize or create it if needed
   console.log('\n📧 Transporter Status:');
+  let activeTransporter = transporter || emailTransporter;
+  
+  // If transporter is not initialized, create it directly
+  if (!activeTransporter) {
+    console.log('   ⏳ Creating transporter...');
+    activeTransporter = await createTransporter();
+  }
+  
   if (!activeTransporter) {
     console.error('❌ Transporter not initialized!');
     console.error('   Make sure MAIL_USER/MAIL_PASS or GMAIL_USER/GMAIL_PASS are set in .env');
+    console.error('   Check that your App Password is correct (16 characters, no spaces)');
     process.exit(1);
   }
+  
   console.log('✅ Transporter initialized');
   console.log(`   Current port: ${currentPort || 'Not determined yet'}`);
   console.log(`   Railway.com compatible: ✅ (supports ports 465 & 587)`);

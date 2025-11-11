@@ -3,7 +3,13 @@ const express = require('express');
 const cors = require('cors');
 const http = require('http');
 const socketIo = require('socket.io');
-require('dotenv').config();
+// Load .env file only if it exists (for local development)
+// On Railway, environment variables are injected directly, so dotenv is not needed
+try {
+  require('dotenv').config();
+} catch (err) {
+  // dotenv not available or .env doesn't exist - this is fine for Railway deployment
+}
 
 // Import configurations
 const db = require('./config/db');

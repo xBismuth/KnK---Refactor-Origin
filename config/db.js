@@ -1,6 +1,12 @@
 // ==================== DATABASE CONNECTION ====================
 const mysql = require('mysql2/promise');
-require('dotenv').config();
+// Load .env file only if it exists (for local development)
+// On Railway, environment variables are injected directly, so dotenv is not needed
+try {
+  require('dotenv').config();
+} catch (err) {
+  // dotenv not available or .env doesn't exist - this is fine for Railway deployment
+}
 
 // Support both standard and Railway variable names
 const dbConfig = {

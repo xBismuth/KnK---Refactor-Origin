@@ -2,7 +2,13 @@
 // Run this to verify your Gmail App Password and network settings
 // Usage: node verify-gmail-setup.js
 
-require('dotenv').config();
+// Load .env file only if it exists (for local development)
+// On Railway, environment variables are injected directly, so dotenv is not needed
+try {
+  require('dotenv').config();
+} catch (err) {
+  // dotenv not available or .env doesn't exist - this is fine for Railway deployment
+}
 const nodemailer = require('nodemailer');
 
 console.log('\n🔍 Gmail Setup Verification\n');

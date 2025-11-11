@@ -23,9 +23,14 @@ router.get('/me', verifyToken, authController.getCurrentUser);
 // Update Profile
 router.put('/update-profile', verifyToken, authController.updateProfile);
 
-// Password Reset Flow
+// Password Reset Flow (for non-logged-in users)
 // Use apiLimiter instead of authLimiter for password reset (less restrictive)
 router.post('/forgot-password', apiLimiter, authController.forgotPassword);
 router.post('/reset-password', apiLimiter, authController.resetPassword);
+
+// Password Change Flow (for logged-in users)
+router.post('/request-password-change-code', verifyToken, apiLimiter, authController.requestPasswordChangeCode);
+router.post('/verify-password-change-code', verifyToken, apiLimiter, authController.verifyPasswordChangeCode);
+router.post('/change-password-with-code', verifyToken, apiLimiter, authController.changePasswordWithCode);
 
 module.exports = router;

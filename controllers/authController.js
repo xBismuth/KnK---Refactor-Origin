@@ -8,6 +8,7 @@ const {
   verificationCodes, 
   loginVerificationCodes,
   passwordResetCodes,
+  passwordChangeCodes,
   generateVerificationCode 
 } = require('../utils/verificationStore');
 const {
@@ -780,6 +781,257 @@ exports.resetPassword = async (req, res) => {
 
   } catch (error) {
     console.error('❌ Reset password error:', error.message);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Server error. Please try again.' 
+    });
+  }
+};
+
+// Request Password Change Code (for logged-in users)
+exports.requestPasswordChangeCode = async (req, res) => {
+  try {
+    // Get user from token (must be authenticated)
+    const userId = req.user?.userId;
+    if (!userId) {
+      return res.status(401).json({ 
+        success: false, 
+        message: 'Authentication required' 
+      });
+    }
+
+    // Get user info
+    const [users] = await db.query(
+      'SELECT id, email, name, auth_type FROM users WHERE id = ?',
+      [userId]
+    );
+
+    if (users.length === 0) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'User not found' 
+      });
+    }
+
+    const user = users[0];
+
+    // Only allow password change for email-authenticated users
+    if (user.auth_type !== 'email') {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Password change is only available for email-authenticated accounts' 
+      });
+    }
+
+    // Generate change code
+    const changeCode = generateVerificationCode();
+    const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes
+
+    passwordChangeCodes.set(user.email, {
+      code: changeCode,
+      expiresAt,
+      userId: user.id,
+      userName: user.name
+    });
+
+    // Send email using Gmail SMTP
+    try {
+      await sendPasswordResetEmail(user.email, changeCode, user.name);
+    } catch (emailError) {
+      console.error('❌ Failed to send password change email:', emailError);
+      passwordChangeCodes.delete(user.email);
+      return res.status(500).json({ 
+        success: false, 
+        message: 'Failed to send verification code. Please try again later.' 
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Verification code sent to your email',
+      email: user.email,
+      devCode: process.env.NODE_ENV === 'development' ? changeCode : undefined
+    });
+
+  } catch (error) {
+    console.error('❌ Request password change code error:', error.message);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Server error. Please try again.' 
+    });
+  }
+};
+
+// Verify Password Change Code
+exports.verifyPasswordChangeCode = async (req, res) => {
+  try {
+    const userId = req.user?.userId;
+    if (!userId) {
+      return res.status(401).json({ 
+        success: false, 
+        message: 'Authentication required' 
+      });
+    }
+
+    const { code } = req.body;
+    if (!code) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Verification code is required' 
+      });
+    }
+
+    // Get user email
+    const [users] = await db.query(
+      'SELECT email FROM users WHERE id = ?',
+      [userId]
+    );
+
+    if (users.length === 0) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'User not found' 
+      });
+    }
+
+    const email = users[0].email;
+
+    // Check change code
+    const changeData = passwordChangeCodes.get(email);
+    if (!changeData) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'No password change request found. Please request a new code.' 
+      });
+    }
+
+    if (Date.now() > changeData.expiresAt) {
+      passwordChangeCodes.delete(email);
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Verification code has expired. Please request a new code.' 
+      });
+    }
+
+    if (changeData.code !== code.toString()) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Invalid verification code. Please try again.' 
+      });
+    }
+
+    // Code is valid - mark as verified (don't delete yet, need it for password change)
+    res.json({
+      success: true,
+      message: 'Verification code verified successfully'
+    });
+
+  } catch (error) {
+    console.error('❌ Verify password change code error:', error.message);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Server error. Please try again.' 
+    });
+  }
+};
+
+// Change Password With Code (for logged-in users)
+exports.changePasswordWithCode = async (req, res) => {
+  try {
+    const userId = req.user?.userId;
+    if (!userId) {
+      return res.status(401).json({ 
+        success: false, 
+        message: 'Authentication required' 
+      });
+    }
+
+    const { code, newPassword } = req.body;
+    
+    if (!code || !newPassword) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Verification code and new password are required' 
+      });
+    }
+
+    // Validate password length
+    if (newPassword.length < 6) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Password must be at least 6 characters long' 
+      });
+    }
+
+    // Get user info
+    const [users] = await db.query(
+      'SELECT id, email, auth_type FROM users WHERE id = ?',
+      [userId]
+    );
+
+    if (users.length === 0) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'User not found' 
+      });
+    }
+
+    const user = users[0];
+
+    // Only allow password change for email-authenticated users
+    if (user.auth_type !== 'email') {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Password change is only available for email-authenticated accounts' 
+      });
+    }
+
+    // Check change code
+    const changeData = passwordChangeCodes.get(user.email);
+    if (!changeData) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'No password change request found. Please request a new code.' 
+      });
+    }
+
+    if (Date.now() > changeData.expiresAt) {
+      passwordChangeCodes.delete(user.email);
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Verification code has expired. Please request a new code.' 
+      });
+    }
+
+    if (changeData.code !== code.toString()) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Invalid verification code. Please try again.' 
+      });
+    }
+
+    // Hash new password
+    const saltRounds = 10;
+    const hashedPassword = await bcrypt.hash(newPassword, saltRounds);
+
+    // Update password in database
+    await db.query(
+      'UPDATE users SET password_hash = ? WHERE id = ? AND email = ? AND auth_type = ?',
+      [hashedPassword, userId, user.email, 'email']
+    );
+
+    // Delete used change code
+    passwordChangeCodes.delete(user.email);
+
+    console.log(`✅ Password change successful for user ${userId} (${user.email})`);
+
+    res.json({
+      success: true,
+      message: 'Password has been changed successfully'
+    });
+
+  } catch (error) {
+    console.error('❌ Change password with code error:', error.message);
     res.status(500).json({ 
       success: false, 
       message: 'Server error. Please try again.' 

@@ -2,6 +2,7 @@
 const verificationCodes = new Map();
 const loginVerificationCodes = new Map();
 const passwordResetCodes = new Map();
+const passwordChangeCodes = new Map(); // For logged-in users changing password
 
 // Cleanup expired codes every 5 minutes
 setInterval(() => {
@@ -27,6 +28,13 @@ setInterval(() => {
       console.log(`🗑️ Cleaned up expired password reset code for: ${email}`);
     }
   }
+  
+  for (const [email, data] of passwordChangeCodes.entries()) {
+    if (now > data.expiresAt) {
+      passwordChangeCodes.delete(email);
+      console.log(`🗑️ Cleaned up expired password change code for: ${email}`);
+    }
+  }
 }, 5 * 60 * 1000);
 
 function generateVerificationCode() {
@@ -37,5 +45,6 @@ module.exports = {
   verificationCodes,
   loginVerificationCodes,
   passwordResetCodes,
+  passwordChangeCodes,
   generateVerificationCode
 };

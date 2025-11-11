@@ -1,6 +1,8 @@
 // ==================== EMAIL SERVICE ====================
-// Using Nodemailer with Gmail SMTP for free, fast email delivery (no domain verification needed)
-const nodemailer = require('nodemailer');
+// Using Brevo API (formerly Sendinblue) for Railway deployment
+// Brevo offers 300 free emails/day with HTTPS API (no SMTP ports needed)
+// Works on all Railway plans including Free/Hobby
+
 // Load .env file only if it exists (for local development)
 // On Railway, environment variables are injected directly, so dotenv is not needed
 try {
@@ -9,195 +11,107 @@ try {
   // dotenv not available or .env doesn't exist - this is fine for Railway deployment
 }
 
-// Gmail SMTP Configuration (FREE - No domain verification needed!)
-// Limits: 500 emails/day (usually enough for small websites)
-// Supports both MAIL_USER/MAIL_PASS and GMAIL_USER/GMAIL_PASS for compatibility
-const GMAIL_USER = process.env.GMAIL_USER || process.env.MAIL_USER || process.env.EMAIL_USER;
-const GMAIL_PASS = process.env.GMAIL_PASS || process.env.MAIL_PASS || process.env.EMAIL_PASS; // App Password, not regular password
+const fetch = require('node-fetch');
 
-// Get the from email address
-const FROM_EMAIL = process.env.FROM_EMAIL || GMAIL_USER;
+// Brevo API Configuration
+const BREVO_API_KEY = process.env.BREVO_API_KEY;
+const FROM_EMAIL = process.env.FROM_EMAIL || 'qjredao@tip.edu.ph';
 const FROM_NAME = process.env.FROM_NAME || 'Kusina Ni Katya';
-
-// Domain configuration
 const DOMAIN = process.env.DOMAIN || 'kusinanikatya.up.railway.app';
 
-// SMTP Configuration Options
-// Railway.com supports outbound SMTP on ports 465 and 587
-const SMTP_CONFIG_465 = {
-  host: 'smtp.gmail.com',
-  port: 465,
-  secure: true, // true for port 465 (SSL)
-  auth: {
-    user: GMAIL_USER,
-    pass: GMAIL_PASS
-  },
-  connectionTimeout: 30000, // 30 seconds - increased for Railway compatibility
-  socketTimeout: 30000, // 30 seconds - prevent hanging connections
-  greetingTimeout: 30000, // 30 seconds
-  // Connection pooling for better performance on Railway
-  pool: true,
-  maxConnections: 5,
-  maxMessages: 100,
-  // Rate limiting (Gmail allows ~20 emails/second)
-  rateDelta: 1000,
-  rateLimit: 18, // Safe limit below Gmail's 20/sec
-  // TLS settings
-  tls: {
-    rejectUnauthorized: false
-  },
-  requireTLS: true
-};
+// Brevo API endpoint
+const BREVO_API_URL = 'https://api.brevo.com/v3/smtp/email';
 
-const SMTP_CONFIG_587 = {
-  host: 'smtp.gmail.com',
-  port: 587,
-  secure: false, // false for port 587 (TLS)
-  auth: {
-    user: GMAIL_USER,
-    pass: GMAIL_PASS
-  },
-  connectionTimeout: 30000, // 30 seconds - increased for Railway
-  socketTimeout: 30000, // 30 seconds
-  greetingTimeout: 30000, // 30 seconds
-  pool: true,
-  maxConnections: 5,
-  maxMessages: 100,
-  rateDelta: 1000,
-  rateLimit: 18,
-  requireTLS: true,
-  tls: {
-    rejectUnauthorized: false,
-    ciphers: 'SSLv3'
-  }
-};
-
-// Initialize Nodemailer transporter (Gmail SMTP)
-let transporter = null;
-let currentPort = null;
+// Debug logging for Railway (only log if API key is missing)
+if (!BREVO_API_KEY) {
+  console.log('🔍 Environment Variable Check:');
+  console.log(`   BREVO_API_KEY: ${BREVO_API_KEY ? '✅ Set' : '❌ Missing'}`);
+  console.log(`   FROM_EMAIL: ${FROM_EMAIL ? '✅ Set' : '❌ Missing'}`);
+  console.log(`   FROM_NAME: ${FROM_NAME ? '✅ Set' : '❌ Missing'}`);
+  console.log('');
+  console.error('❌ Brevo API key not configured!');
+  console.error('💡 Brevo Setup:');
+  console.error('   1. Sign up: https://app.brevo.com/account/register');
+  console.error('   2. Go to: Settings → SMTP & API → API Keys');
+  console.error('   3. Generate a new API key');
+  console.error('   4. Add BREVO_API_KEY to Railway Variables tab or .env file');
+} else {
+  console.log('✅ Brevo email service configured');
+  console.log(`📧 From: ${FROM_NAME} <${FROM_EMAIL}>`);
+  console.log(`🌐 Domain: ${DOMAIN}`);
+}
 
 /**
- * Create transporter with fallback logic (async version)
- * Railway.com supports both ports 465 and 587 for outbound SMTP
- * @returns {Promise<object|null>} Transporter instance or null if failed
+ * Send email using Brevo API
+ * @param {string} toEmail - Recipient email address
+ * @param {string} subject - Email subject
+ * @param {string} html - HTML email content
+ * @param {string} text - Plain text content (optional)
+ * @returns {Promise<{success: boolean, messageId: string}>}
  */
-async function createTransporter() {
-  if (!GMAIL_USER || !GMAIL_PASS) {
-    return null;
+async function sendEmail(toEmail, subject, html, text = null) {
+  if (!BREVO_API_KEY) {
+    throw new Error('BREVO_API_KEY is not configured. Add it to Railway Variables or .env file');
   }
 
-  // Try port 465 first (SSL) - Railway supports this
+  const timestamp = new Date().toISOString();
+
   try {
-    const transporter465 = nodemailer.createTransport(SMTP_CONFIG_465);
-    
-    // Test connection with promise wrapper
-    try {
-      await new Promise((resolve, reject) => {
-        transporter465.verify(function (error, success) {
-          if (error) {
-            reject(error);
-          } else {
-            resolve(success);
-          }
-        });
-      });
-      
-      // Success on port 465
-      console.log('✅ Gmail SMTP connected via port 465 (SSL)');
-      console.log(`📧 Using Gmail: ${GMAIL_USER}`);
-      console.log(`✅ Railway.com compatible - emails will work!`);
-      console.log(`✅ Can send emails to any recipient (500/day limit)`);
-      transporter = transporter465;
-      currentPort = 465;
-      return transporter465;
-    } catch (error) {
-      console.warn(`⚠️ Port 465 (SSL) connection failed: ${error.message}`);
-      console.log('🔄 Attempting fallback to port 587 (TLS)...');
-      
-      // Close the failed transporter
-      transporter465.close();
-      
-      // Fallback to port 587 (Railway also supports this)
-      try {
-        const transporter587 = nodemailer.createTransport(SMTP_CONFIG_587);
-        
-        await new Promise((resolve, reject) => {
-          transporter587.verify(function (error587, success587) {
-            if (error587) {
-              reject(error587);
-            } else {
-              resolve(success587);
-            }
-          });
-        });
-        
-        // Success on port 587
-        console.log('✅ Gmail SMTP connected via port 587 (TLS fallback)');
-        console.log(`📧 Using Gmail: ${GMAIL_USER}`);
-        console.log(`✅ Railway.com compatible - emails will work!`);
-        transporter = transporter587;
-        currentPort = 587;
-        return transporter587;
-      } catch (error587) {
-        console.error('❌ Port 587 (TLS) also failed:', error587.message);
-        console.error('💡 Check your Gmail App Password and network settings');
-        console.error('💡 Railway.com supports SMTP - verify your App Password is correct');
-        try {
-          if (transporter587) {
-            transporter587.close();
-          }
-        } catch (closeErr) {
-          // Ignore close errors
-        }
-        return null;
-      }
+    const response = await fetch(BREVO_API_URL, {
+      method: 'POST',
+      headers: {
+        'accept': 'application/json',
+        'api-key': BREVO_API_KEY,
+        'content-type': 'application/json'
+      },
+      body: JSON.stringify({
+        sender: {
+          name: FROM_NAME,
+          email: FROM_EMAIL
+        },
+        to: [{ email: toEmail }],
+        subject: subject,
+        htmlContent: html,
+        textContent: text || html.replace(/<[^>]*>/g, '') // Strip HTML tags for text version
+      })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+      const errorMessage = errorData.message || errorData.error || `HTTP ${response.status}`;
+      throw new Error(`Brevo API error: ${errorMessage}`);
     }
+
+    const result = await response.json();
+    const messageId = result.messageId || `brevo-${Date.now()}`;
+
+    console.log(`[${timestamp}] ✅ Email sent via Brevo to ${toEmail} (ID: ${messageId})`);
+
+    return {
+      success: true,
+      messageId: messageId,
+      attempts: 1,
+      deliveryInfo: {
+        messageId: messageId,
+        toEmail,
+        subject,
+        sentAt: timestamp,
+        status: 'sent',
+        service: 'brevo'
+      }
+    };
   } catch (error) {
-    console.error('❌ Failed to create transporter:', error.message);
-    return null;
+    const errorTimestamp = new Date().toISOString();
+    console.error(`[${errorTimestamp}] ❌ Brevo email send failed:`, error.message);
+    throw error;
   }
 }
 
-// Initialize transporter asynchronously
-(async function initializeEmail() {
-  if (GMAIL_USER && GMAIL_PASS) {
-    // Verify Gmail account setup
-    if (!GMAIL_PASS.startsWith('G') && GMAIL_PASS.length !== 16) {
-      console.warn('⚠️ WARNING: GMAIL_PASS/MAIL_PASS should be a 16-character App Password');
-      console.warn('💡 Make sure you:');
-      console.warn('   1. Enabled 2-Step Verification: https://myaccount.google.com/security');
-      console.warn('   2. Generated an App Password: https://myaccount.google.com/apppasswords');
-      console.warn('   3. Using the App Password (not your regular Gmail password)');
-    }
-    
-    // Create transporter asynchronously
-    transporter = await createTransporter();
-    if (!transporter) {
-      console.error('❌ Failed to initialize email transporter. Emails will not work.');
-    }
-  } else {
-    console.error('❌ Email service not configured!');
-    console.error('💡 Gmail Setup (Free, No Domain Verification):');
-    console.error('   1. Enable 2-Step Verification: https://myaccount.google.com/security');
-    console.error('   2. Generate App Password: https://myaccount.google.com/apppasswords');
-    console.error('   3. Add to .env (use either MAIL_* or GMAIL_*):');
-    console.error('      GMAIL_USER=your-email@gmail.com');
-    console.error('      GMAIL_PASS=your-16-character-app-password');
-    console.error('      FROM_EMAIL=your-email@gmail.com');
-    console.error('      FROM_NAME=Kusina Ni Katya');
-  }
-})();
-
-console.log(`🌐 Application domain: ${DOMAIN}`);
-
 // Export email service components
-// Also export as emailTransporter for backward compatibility
-module.exports = { 
-  transporter,
-  emailTransporter: transporter, // Backward compatibility
+module.exports = {
+  sendEmail,
   FROM_EMAIL,
   FROM_NAME,
   DOMAIN,
-  currentPort,
-  createTransporter // Export for retry logic
+  BREVO_API_KEY: BREVO_API_KEY ? '***SET***' : null // Don't expose actual key
 };

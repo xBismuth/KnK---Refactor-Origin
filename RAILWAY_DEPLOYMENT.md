@@ -2,20 +2,20 @@
 
 ## ✅ Railway.com Compatibility Verified
 
-Your email system is **fully compatible** with Railway.com hosting!
+Your email system uses **Brevo API** which is **fully compatible** with Railway.com hosting!
 
-### Railway.com SMTP Support
+### Railway.com Email Support
 
-✅ **Port 465 (SSL)** - Supported  
-✅ **Port 587 (TLS)** - Supported  
-✅ **Outbound SMTP** - Allowed  
-✅ **Automatic Fallback** - Port 465 → 587 if needed
+✅ **Brevo API (HTTPS)** - Works on ALL Railway plans (Free/Hobby/Pro)  
+✅ **No SMTP ports needed** - Uses HTTPS API (port 443)  
+✅ **Better deliverability** - Professional email service  
+✅ **300 free emails/day** - 9,000 emails/month  
 
 ### What Works on Railway
 
-1. **Gmail SMTP** - Fully supported
-2. **Port Fallback** - Automatically tries port 587 if 465 fails
-3. **Connection Pooling** - Optimized for Railway's infrastructure
+1. **Brevo API** - Fully supported on all plans
+2. **HTTPS API** - No port blocking issues
+3. **Reliable delivery** - Better than SMTP
 4. **Retry Logic** - Handles network issues gracefully
 5. **Fast Delivery** - Non-blocking email sends
 
@@ -24,29 +24,26 @@ Your email system is **fully compatible** with Railway.com hosting!
 Add these to your Railway project's environment variables:
 
 ```env
-# Gmail Configuration (use either MAIL_* or GMAIL_*)
-GMAIL_USER=your-email@gmail.com
-GMAIL_PASS=your-16-character-app-password
-FROM_EMAIL=your-email@gmail.com
+# Brevo API Configuration
+BREVO_API_KEY=xkeysib-your-api-key-here
+FROM_EMAIL=qjredao@tip.edu.ph
 FROM_NAME=Kusina Ni Katya
-
-# Or use MAIL_* (backward compatible)
-MAIL_USER=your-email@gmail.com
-MAIL_PASS=your-16-character-app-password
 ```
 
 **Important:**
-- Remove ALL spaces from App Password
-- App Password must be 16 characters
-- Use App Password, NOT your regular Gmail password
+- Get API key from: https://app.brevo.com/account/register
+- Go to: Settings → SMTP & API → API Keys
+- Generate a new API key (starts with `xkeysib-`)
+- No spaces in API key
 
 ## Railway Deployment Checklist
 
-- [ ] Gmail 2-Step Verification enabled
-- [ ] App Password generated (16 characters)
+- [ ] Brevo account created
+- [ ] API key generated
 - [ ] Environment variables set in Railway dashboard
-- [ ] App Password has NO spaces
-- [ ] FROM_NAME set to "Kusina Ni Katya"
+- [ ] `BREVO_API_KEY` added to Railway Variables
+- [ ] `FROM_EMAIL` set to your email
+- [ ] `FROM_NAME` set to "Kusina Ni Katya"
 - [ ] Deploy to Railway
 - [ ] Check Railway logs for email connection status
 - [ ] Test email sending after deployment
@@ -55,39 +52,39 @@ MAIL_PASS=your-16-character-app-password
 
 After deployment, check Railway logs for:
 ```
-✅ Gmail SMTP connected via port 465 (SSL)
-✅ Railway.com compatible - emails will work!
+✅ Brevo email service configured
+📧 From: Kusina Ni Katya <qjredao@tip.edu.ph>
 ```
 
-If you see port fallback:
+When sending emails:
 ```
-✅ Gmail SMTP connected via port 587 (TLS fallback)
-✅ Railway.com compatible - emails will work!
+✅ Email sent via Brevo to user@example.com (ID: brevo-1234567890)
 ```
-
-Both are fine! Railway supports both ports.
 
 ## Troubleshooting on Railway
 
 ### If emails don't send:
 
 1. **Check Railway logs** - Look for email connection errors
-2. **Verify App Password** - Must be 16 characters, no spaces
+2. **Verify API key** - Must start with `xkeysib-`
 3. **Check environment variables** - Make sure they're set in Railway dashboard
 4. **Restart service** - After changing env vars, restart the Railway service
 
 ### Common Railway Issues:
 
-- ✅ **Port blocking** - Not an issue, Railway supports SMTP
-- ✅ **Firewall** - Not an issue, Railway allows outbound SMTP
-- ⚠️ **App Password** - Most common issue, verify it's correct
+- ✅ **Port blocking** - Not an issue, Brevo uses HTTPS
+- ✅ **Firewall** - Not an issue, Brevo uses HTTPS
+- ⚠️ **API Key** - Most common issue, verify it's correct
 
 ## Success Indicators
 
 When deployed to Railway, you should see in logs:
-- ✅ Gmail SMTP connected
-- ✅ Railway.com compatible
-- ✅ Can send emails to any recipient
+- ✅ Brevo email service configured
+- ✅ From email configured
+- ✅ Ready to send emails
 
 Then your emails will work perfectly on Railway! 🚀
 
+## Migration from Gmail SMTP
+
+If you were previously using Gmail SMTP, see `BREVO_MIGRATION.md` for migration details.

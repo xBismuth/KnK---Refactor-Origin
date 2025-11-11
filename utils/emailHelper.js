@@ -1,19 +1,15 @@
 // ==================== EMAIL HELPER FUNCTIONS ====================
-// Using Nodemailer with Gmail SMTP (FREE - No domain verification needed!)
-// Supports both MAIL_USER/MAIL_PASS and GMAIL_USER/GMAIL_PASS for compatibility
-// Railway.com compatible - supports outbound SMTP on ports 465 and 587
-const { transporter, emailTransporter, FROM_EMAIL, FROM_NAME, createTransporter, currentPort } = require('../config/email');
-
-// Use transporter or emailTransporter (backward compatibility)
-const activeTransporter = transporter || emailTransporter;
+// Using Brevo API for Railway deployment (HTTPS, no SMTP ports needed)
+// Brevo offers 300 free emails/day with better deliverability than Gmail SMTP
+const { sendEmail: brevoSendEmail, FROM_EMAIL, FROM_NAME } = require('../config/email');
 
 // Email delivery tracking (in-memory store - consider using Redis for production)
 const emailDeliveryStatus = new Map();
 
 // Retry configuration (improved for reliability)
 const RETRY_CONFIG = {
-  maxRetries: 5, // Increased to 5 attempts
-  retryDelay: 500, // 500ms base delay
+  maxRetries: 3, // Brevo API is more reliable, fewer retries needed
+  retryDelay: 1000, // 1 second base delay
   backoffMultiplier: 2, // Exponential backoff
   maxDelay: 5000 // Maximum 5 seconds between retries
 };
@@ -30,32 +26,23 @@ function sleep(ms) {
  */
 function isRetryableError(error) {
   // Network errors
-  if (error.code === 'ECONNRESET' || 
-      error.code === 'ETIMEDOUT' || 
-      error.code === 'ESOCKETTIMEDOUT' ||
-      error.code === 'ECONNREFUSED' ||
-      error.code === 'EHOSTUNREACH' ||
-      error.code === 'ENOTFOUND') {
+  if (error.message?.includes('ECONNRESET') || 
+      error.message?.includes('ETIMEDOUT') || 
+      error.message?.includes('ENOTFOUND') ||
+      error.message?.includes('network')) {
     return true;
   }
   
-  // DNS errors
-  if (error.code === 'EDNS' || error.message?.includes('DNS')) {
+  // Rate limiting (429)
+  if (error.message?.includes('429') || error.message?.includes('rate limit')) {
     return true;
   }
   
-  // Auth errors (retry once)
-  if (error.code === 'EAUTH') {
-    return true;
-  }
-  
-  // Rate limiting
-  if (error.responseCode === 421 || error.responseCode === 450 || error.responseCode === 452) {
-    return true;
-  }
-  
-  // Temporary server errors
-  if (error.responseCode >= 500 && error.responseCode < 600) {
+  // Temporary server errors (5xx)
+  if (error.message?.includes('500') || 
+      error.message?.includes('502') || 
+      error.message?.includes('503') ||
+      error.message?.includes('504')) {
     return true;
   }
   
@@ -63,103 +50,38 @@ function isRetryableError(error) {
 }
 
 /**
- * Check if error suggests port/firewall issue
- */
-function isPortBlockedError(error) {
-  const blockedMessages = [
-    'ECONNREFUSED',
-    'ETIMEDOUT',
-    'EHOSTUNREACH',
-    'port',
-    'connection refused',
-    'timeout',
-    'firewall'
-  ];
-  
-  const errorStr = JSON.stringify(error).toLowerCase();
-  return blockedMessages.some(msg => errorStr.includes(msg.toLowerCase()));
-}
-
-/**
- * Send email using Gmail SMTP with improved retry and error handling
- * Railway.com compatible - automatically handles port fallback
+ * Send email using Brevo API with retry logic
  * @param {string} toEmail - Recipient email address
  * @param {string} subject - Email subject
  * @param {string} html - HTML email content
  * @param {number} retryCount - Current retry attempt (internal use)
- * @param {boolean} useFallbackPort - Whether to try fallback port (internal use)
  * @returns {Promise<{success: boolean, messageId: string, attempts: number}>}
  */
-async function sendEmail(toEmail, subject, html, retryCount = 0, useFallbackPort = false) {
+async function sendEmail(toEmail, subject, html, retryCount = 0) {
   const timestamp = new Date().toISOString();
   
-  if (!activeTransporter) {
-    const error = new Error('Gmail SMTP not configured. Set MAIL_USER/MAIL_PASS or GMAIL_USER/GMAIL_PASS in .env');
+  if (!process.env.BREVO_API_KEY) {
+    const error = new Error('Brevo API key not configured. Set BREVO_API_KEY in Railway Variables or .env file');
     console.error(`[${timestamp}] ❌ ${error.message}`);
     throw error;
   }
 
   try {
-    // Use sendMail with optimized options for faster delivery
-    const info = await activeTransporter.sendMail({
-      from: `"${FROM_NAME}" <${FROM_EMAIL}>`,
-      to: toEmail,
-      subject: subject,
-      html: html,
-      // Optimize for speed
-      priority: 'high', // High priority for verification codes
-      headers: {
-        'X-Priority': '1', // High priority
-        'X-MSMail-Priority': 'High'
-      }
-    });
-
+    const result = await brevoSendEmail(toEmail, subject, html);
+    
     // Track successful delivery
-    const messageId = info.messageId || `gmail-${Date.now()}`;
-    const deliveryInfo = {
-      messageId: messageId,
-      toEmail,
-      subject,
-      sentAt: timestamp,
-      attempts: retryCount + 1,
-      status: 'sent',
-      service: 'gmail',
-      port: currentPort || 'unknown'
-    };
+    emailDeliveryStatus.set(result.messageId, result.deliveryInfo);
     
-    emailDeliveryStatus.set(messageId, deliveryInfo);
-    
-    console.log(`[${timestamp}] ✅ Email sent via Gmail to ${toEmail} (ID: ${messageId}, attempts: ${retryCount + 1}, port: ${currentPort || 'unknown'})`);
-    
-    return { 
-      success: true, 
-      messageId: messageId,
-      attempts: retryCount + 1,
-      deliveryInfo
-    };
+    return result;
   } catch (error) {
     const errorTimestamp = new Date().toISOString();
-    const errorCode = error.code || error.responseCode || 'UNKNOWN';
-    const errorMessage = error.message || 'Unknown error';
+    const errorCode = error.message || 'UNKNOWN';
     
     console.error(`[${errorTimestamp}] ❌ Email send attempt ${retryCount + 1} failed:`, {
       code: errorCode,
-      message: errorMessage,
+      message: error.message,
       to: toEmail
     });
-    
-    // Check if port might be blocked (firewall issue)
-    // Railway.com supports both ports, but fallback helps with network issues
-    if (isPortBlockedError(error) && !useFallbackPort && retryCount === 0) {
-      console.warn(`[${errorTimestamp}] ⚠️ Possible port/firewall issue detected. Attempting port fallback...`);
-      // Try recreating transporter with fallback port
-      const newTransporter = createTransporter();
-      if (newTransporter) {
-        // Wait a bit before retry
-        await sleep(500);
-        return await sendEmail(toEmail, subject, html, retryCount, true);
-      }
-    }
     
     // Check if we should retry
     const isRetryable = isRetryableError(error);
@@ -171,26 +93,16 @@ async function sendEmail(toEmail, subject, html, retryCount = 0, useFallbackPort
       );
       
       console.warn(`[${errorTimestamp}] ⚠️ Retrying email send (attempt ${retryCount + 1}/${RETRY_CONFIG.maxRetries}) in ${delay}ms...`);
-      console.warn(`[${errorTimestamp}]    Error: ${errorCode} - ${errorMessage}`);
       
       await sleep(delay);
-      return await sendEmail(toEmail, subject, html, retryCount + 1, useFallbackPort);
+      return await sendEmail(toEmail, subject, html, retryCount + 1);
     }
     
     // Final failure
     console.error(`[${errorTimestamp}] ❌ Email send failed after ${retryCount + 1} attempts`);
-    console.error(`[${errorTimestamp}]    Final error: ${errorCode} - ${errorMessage}`);
+    console.error(`[${errorTimestamp}]    Final error: ${errorCode}`);
     
-    // Provide helpful error message
-    if (isPortBlockedError(error)) {
-      throw new Error(`Email sending failed: Port may be blocked by firewall. Railway.com supports SMTP - check your App Password. Original error: ${errorMessage}`);
-    } else if (error.code === 'EAUTH') {
-      throw new Error(`Email authentication failed: Check your Gmail App Password. Original error: ${errorMessage}`);
-    } else if (error.code === 'ENOTFOUND' || error.code === 'EDNS') {
-      throw new Error(`DNS resolution failed: Check your network connection. Original error: ${errorMessage}`);
-    } else {
-      throw new Error(`Email sending failed after ${retryCount + 1} attempts: ${errorMessage}`);
-    }
+    throw new Error(`Email sending failed after ${retryCount + 1} attempts: ${error.message}`);
   }
 }
 

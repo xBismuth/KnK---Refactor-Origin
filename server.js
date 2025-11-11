@@ -81,7 +81,7 @@ app.get('/api/health', (req, res) => {
     timestamp: new Date().toISOString(),
     database: 'connected',
     paymongo: process.env.PAYMONGO_SECRET_KEY ? 'configured' : 'not configured',
-    email: (process.env.GMAIL_USER && process.env.GMAIL_PASS) || (process.env.MAIL_USER && process.env.MAIL_PASS) ? 'configured (Gmail)' : 'not configured',
+    email: process.env.BREVO_API_KEY ? 'configured (Brevo)' : 'not configured',
     domain: 'kusinanikatya.up.railway.app',
     socketio: 'enabled'
   });

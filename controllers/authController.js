@@ -60,12 +60,10 @@ exports.signup = async (req, res) => {
       }
     });
 
-    // Check if email service is configured (support both MAIL_* and GMAIL_*)
-    const emailConfigured = (process.env.MAIL_USER && process.env.MAIL_PASS) || 
-                            (process.env.GMAIL_USER && process.env.GMAIL_PASS) ||
-                            (process.env.EMAIL_USER && process.env.EMAIL_PASS);
+    // Check if email service is configured (Brevo API)
+    const emailConfigured = process.env.BREVO_API_KEY;
     if (!emailConfigured) {
-      console.error('❌ Email service not configured! Gmail credentials missing.');
+      console.error('❌ Email service not configured! Brevo API key missing.');
       return res.status(500).json({ 
         success: false, 
         message: 'Email service not configured. Please contact support.' 
@@ -228,12 +226,10 @@ exports.resendCode = async (req, res) => {
 
     verificationCodes.set(email, { ...verificationData, code: newCode, expiresAt });
 
-    // Check if email service is configured (support both MAIL_* and GMAIL_*)
-    const emailConfigured = (process.env.MAIL_USER && process.env.MAIL_PASS) || 
-                            (process.env.GMAIL_USER && process.env.GMAIL_PASS) ||
-                            (process.env.EMAIL_USER && process.env.EMAIL_PASS);
+    // Check if email service is configured (Brevo API)
+    const emailConfigured = process.env.BREVO_API_KEY;
     if (!emailConfigured) {
-      console.error('❌ Email service not configured! Gmail credentials missing.');
+      console.error('❌ Email service not configured! Brevo API key missing.');
       return res.status(500).json({ 
         success: false, 
         message: 'Email service not configured. Please contact support.' 

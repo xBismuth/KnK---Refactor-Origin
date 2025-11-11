@@ -1,6 +1,6 @@
 // ==================== SUPPORT CONTROLLER ====================
 const db = require('../config/db');
-const { emailTransporter } = require('../config/email');
+const { sendEmail } = require('../config/email');
 
 // Submit support ticket
 exports.submitTicket = async (req, res) => {
@@ -30,16 +30,9 @@ exports.submitTicket = async (req, res) => {
 
     console.log(`✅ New support ticket created: ID ${result.insertId} from ${email}`);
 
-    // Send confirmation email
+    // Send confirmation email using Brevo
     try {
-      await emailTransporter.sendMail({
-        from: {
-          name: 'Kusina ni Katya',
-          address: process.env.MAIL_USER
-        },
-        to: email,
-        subject: 'We received your message - Kusina ni Katya',
-        html: `
+      const emailHtml = `
           <!DOCTYPE html>
           <html>
           <head>
@@ -85,9 +78,14 @@ exports.submitTicket = async (req, res) => {
             </div>
           </body>
           </html>
-        `
-      });
-      console.log('📧 Confirmation email sent to customer');
+        `;
+      
+      await sendEmail(
+        email,
+        'We received your message - Kusina ni Katya',
+        emailHtml
+      );
+      console.log('📧 Confirmation email sent to customer via Brevo');
     } catch (emailError) {
       console.error('⚠️ Failed to send confirmation email:', emailError.message);
     }
@@ -141,14 +139,8 @@ exports.replyToTicket = async (req, res) => {
       });
     }
 
-    await emailTransporter.sendMail({
-      from: {
-        name: 'Kusina ni Katya Support',
-        address: process.env.MAIL_USER
-      },
-      to: email,
-      subject: `Re: ${subject}`,
-      html: `
+    // Send reply email using Brevo
+    const replyHtml = `
         <!DOCTYPE html>
         <html>
         <head>
@@ -198,9 +190,14 @@ exports.replyToTicket = async (req, res) => {
             </div>
           </div>
         </body>
-        </html>
-      `
-    });
+          </html>
+      `;
+    
+    await sendEmail(
+      email,
+      `Re: ${subject}`,
+      replyHtml
+    );
 
     await db.query(
       'UPDATE support_tickets SET status = ?, replied_at = NOW() WHERE id = ?',

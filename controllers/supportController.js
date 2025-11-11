@@ -1,6 +1,6 @@
 // ==================== SUPPORT CONTROLLER ====================
 const db = require('../config/db');
-const { sendContactNotification, sendEmailWithResend } = require('../utils/emailHelper');
+const { sendContactNotification, sendEmail } = require('../utils/emailHelper');
 
 // Submit support ticket
 exports.submitTicket = async (req, res) => {
@@ -93,7 +93,7 @@ exports.submitTicket = async (req, res) => {
 
       try {
         // Use the emailHelper function which includes retry logic
-        await sendEmailWithResend(email, 'We received your message - Kusina ni Katya', html);
+        await sendEmail(email, 'We received your message - Kusina ni Katya', html);
       } catch (emailError) {
         // Don't throw - email failure shouldn't block the response
         console.error('⚠️ Failed to send confirmation email:', emailError.message);
@@ -211,8 +211,8 @@ exports.replyToTicket = async (req, res) => {
         </html>
       `;
 
-    // Send with Resend using emailHelper (includes retry logic)
-    await sendEmailWithResend(email, `Re: ${subject}`, html);
+    // Send email using emailHelper (includes retry logic)
+    await sendEmail(email, `Re: ${subject}`, html);
 
     await db.query(
       'UPDATE support_tickets SET status = ?, replied_at = NOW() WHERE id = ?',

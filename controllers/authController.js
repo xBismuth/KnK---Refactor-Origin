@@ -59,10 +59,10 @@ exports.signup = async (req, res) => {
       }
     });
 
-    // Check if email service is configured (Gmail or Resend)
-    const emailConfigured = (process.env.GMAIL_USER && process.env.GMAIL_PASS) || process.env.RESEND_API_KEY;
+    // Check if email service is configured
+    const emailConfigured = process.env.GMAIL_USER && process.env.GMAIL_PASS;
     if (!emailConfigured) {
-      console.error('❌ Email service not configured! Gmail or Resend credentials missing.');
+      console.error('❌ Email service not configured! Gmail credentials missing.');
       return res.status(500).json({ 
         success: false, 
         message: 'Email service not configured. Please contact support.' 
@@ -225,10 +225,10 @@ exports.resendCode = async (req, res) => {
 
     verificationCodes.set(email, { ...verificationData, code: newCode, expiresAt });
 
-    // Check if email service is configured (Gmail or Resend)
-    const emailConfigured = (process.env.GMAIL_USER && process.env.GMAIL_PASS) || process.env.RESEND_API_KEY;
+    // Check if email service is configured
+    const emailConfigured = process.env.GMAIL_USER && process.env.GMAIL_PASS;
     if (!emailConfigured) {
-      console.error('❌ Email service not configured! Gmail or Resend credentials missing.');
+      console.error('❌ Email service not configured! Gmail credentials missing.');
       return res.status(500).json({ 
         success: false, 
         message: 'Email service not configured. Please contact support.' 

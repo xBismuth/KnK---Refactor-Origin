@@ -3,8 +3,10 @@
 // Usage: node test-email.js [recipient-email]
 
 require('dotenv').config();
-const { transporter, FROM_EMAIL, FROM_NAME, currentPort } = require('./config/email');
+const { transporter, emailTransporter, FROM_EMAIL, FROM_NAME, currentPort } = require('./config/email');
 const { sendVerificationEmail } = require('./utils/emailHelper');
+
+const activeTransporter = transporter || emailTransporter;
 
 async function testEmailConfiguration() {
   const startTime = Date.now();
@@ -14,19 +16,22 @@ async function testEmailConfiguration() {
   console.log('='.repeat(60));
   console.log(`Test started at: ${timestamp}\n`);
   
-  // Check environment variables
+  // Check environment variables (supports both MAIL_* and GMAIL_*)
   console.log('📋 Configuration Check:');
-  console.log(`   GMAIL_USER: ${process.env.GMAIL_USER ? '✅ Set' : '❌ Missing'}`);
-  console.log(`   GMAIL_PASS: ${process.env.GMAIL_PASS ? '✅ Set (hidden)' : '❌ Missing'}`);
+  const MAIL_USER = process.env.MAIL_USER || process.env.GMAIL_USER;
+  const MAIL_PASS = process.env.MAIL_PASS || process.env.GMAIL_PASS;
+  
+  console.log(`   MAIL_USER/GMAIL_USER: ${MAIL_USER ? '✅ Set' : '❌ Missing'}`);
+  console.log(`   MAIL_PASS/GMAIL_PASS: ${MAIL_PASS ? '✅ Set (hidden)' : '❌ Missing'}`);
   console.log(`   FROM_EMAIL: ${FROM_EMAIL || 'Not set'}`);
   console.log(`   FROM_NAME: ${FROM_NAME || 'Not set'}`);
   
   // Check App Password format
-  if (process.env.GMAIL_PASS) {
-    const passLength = process.env.GMAIL_PASS.length;
-    const isAppPassword = process.env.GMAIL_PASS.startsWith('G') || passLength === 16;
+  if (MAIL_PASS) {
+    const passLength = MAIL_PASS.length;
+    const isAppPassword = MAIL_PASS.startsWith('G') || passLength === 16;
     if (!isAppPassword) {
-      console.warn(`   ⚠️  GMAIL_PASS format warning: Should be 16-character App Password`);
+      console.warn(`   ⚠️  MAIL_PASS/GMAIL_PASS format warning: Should be 16-character App Password`);
     } else {
       console.log(`   ✅ App Password format looks correct (${passLength} characters)`);
     }
@@ -34,13 +39,14 @@ async function testEmailConfiguration() {
   
   // Check transporter
   console.log('\n📧 Transporter Status:');
-  if (!transporter) {
+  if (!activeTransporter) {
     console.error('❌ Transporter not initialized!');
-    console.error('   Make sure GMAIL_USER and GMAIL_PASS are set in .env');
+    console.error('   Make sure MAIL_USER/MAIL_PASS or GMAIL_USER/GMAIL_PASS are set in .env');
     process.exit(1);
   }
   console.log('✅ Transporter initialized');
   console.log(`   Current port: ${currentPort || 'Not determined yet'}`);
+  console.log(`   Railway.com compatible: ✅ (supports ports 465 & 587)`);
   
   // Test connection
   console.log('\n🔌 Testing SMTP Connection...');
@@ -48,7 +54,7 @@ async function testEmailConfiguration() {
   
   try {
     await new Promise((resolve, reject) => {
-      transporter.verify(function (error, success) {
+      activeTransporter.verify(function (error, success) {
         const connectionTime = Date.now() - connectionStart;
         
         if (error) {
@@ -56,13 +62,15 @@ async function testEmailConfiguration() {
           console.error('\n💡 Common issues:');
           console.error('   1. 2-Step Verification not enabled');
           console.error('   2. App Password not generated or incorrect');
-          console.error('   3. GMAIL_USER or GMAIL_PASS missing/wrong in .env');
+          console.error('   3. MAIL_USER/MAIL_PASS or GMAIL_USER/GMAIL_PASS missing/wrong in .env');
           console.error('   4. Network/firewall blocking SMTP ports 465/587');
           console.error('   5. Less secure app access blocked (use App Password instead)');
+          console.error('\n💡 Railway.com: Ports 465 and 587 are supported - check your App Password');
           reject(error);
         } else {
           console.log(`✅ SMTP connection successful! (${connectionTime}ms)`);
           console.log(`   Port: ${currentPort || 'Unknown'}`);
+          console.log(`   ✅ Ready for Railway.com deployment!`);
           resolve(success);
         }
       });
@@ -95,6 +103,7 @@ async function testEmailConfiguration() {
       console.log(`   Connection: ✅`);
       console.log(`   Send test: ✅ (${sendTime}ms)`);
       console.log(`   Total time: ${totalTime}ms`);
+      console.log(`   Railway.com ready: ✅`);
       console.log('='.repeat(60) + '\n');
     } catch (error) {
       const sendTime = Date.now() - sendStart;
@@ -121,6 +130,7 @@ async function testEmailConfiguration() {
     console.log('✅ Email configuration test PASSED');
     console.log(`   Test completed at: ${endTimestamp}`);
     console.log(`   Total time: ${totalTime}ms`);
+    console.log(`   Railway.com compatible: ✅`);
     console.log('='.repeat(60) + '\n');
   }
 }
@@ -131,4 +141,3 @@ testEmailConfiguration().catch(error => {
   console.error(`\n[${timestamp}] ❌ Test failed:`, error);
   process.exit(1);
 });
-

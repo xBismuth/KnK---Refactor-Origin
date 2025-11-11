@@ -75,26 +75,13 @@ app.get('/api/health', (req, res) => {
     timestamp: new Date().toISOString(),
     database: 'connected',
     paymongo: process.env.PAYMONGO_SECRET_KEY ? 'configured' : 'not configured',
-    email: (process.env.GMAIL_USER && process.env.GMAIL_PASS) ? 'configured (Gmail)' : 'not configured',
+    email: (process.env.GMAIL_USER && process.env.GMAIL_PASS) || (process.env.MAIL_USER && process.env.MAIL_PASS) ? 'configured (Gmail)' : 'not configured',
     domain: 'kusinanikatya.up.railway.app',
     socketio: 'enabled'
   });
 });
 
-// Email delivery status endpoint (admin only - for monitoring)
-app.get('/api/admin/email-status', (req, res) => {
-  if (process.env.NODE_ENV === 'development' || req.query.key === process.env.ADMIN_API_KEY) {
-    const { getAllEmailDeliveryStatuses } = require('./utils/emailHelper');
-    const statuses = getAllEmailDeliveryStatuses();
-    res.json({
-      success: true,
-      total: statuses.length,
-      emails: statuses
-    });
-  } else {
-    res.status(403).json({ success: false, message: 'Access denied' });
-  }
-});
+// Email delivery status endpoint removed - using simpler email implementation
 
 // Mount routes
 app.use('/auth', authRoutes);
@@ -146,7 +133,7 @@ app.use((err, req, res, next) => {
 // ==================== START SERVER ====================
 server.listen(PORT, () => {
   const paymongoOk = !!process.env.PAYMONGO_SECRET_KEY;
-  const emailOk = !!(process.env.GMAIL_USER && process.env.GMAIL_PASS);
+  const emailOk = !!(process.env.MAIL_USER && process.env.MAIL_PASS);
   const jwtOk = !!process.env.JWT_SECRET;
   const dbName = process.env.DB_NAME || 'kusina_db';
 

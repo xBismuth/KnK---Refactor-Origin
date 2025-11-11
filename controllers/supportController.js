@@ -1,6 +1,6 @@
 // ==================== SUPPORT CONTROLLER ====================
 const db = require('../config/db');
-const { sendContactNotification, sendEmail } = require('../utils/emailHelper');
+const { emailTransporter } = require('../config/email');
 
 // Submit support ticket
 exports.submitTicket = async (req, res) => {
@@ -30,20 +30,16 @@ exports.submitTicket = async (req, res) => {
 
     console.log(`✅ New support ticket created: ID ${result.insertId} from ${email}`);
 
-    // Send admin notification (non-blocking)
-    const sendAdminNotification = async () => {
-      try {
-        await sendContactNotification({ name, email, phone, subject, message });
-      } catch (error) {
-        // Don't block response if admin notification fails
-        console.error('⚠️ Failed to send admin notification:', error.message);
-      }
-    };
-    sendAdminNotification().catch(() => {});
-
-    // Send confirmation email (non-blocking with retry logic via emailHelper)
-    const sendConfirmationEmail = async () => {
-      const html = `
+    // Send confirmation email
+    try {
+      await emailTransporter.sendMail({
+        from: {
+          name: 'Kusina ni Katya',
+          address: process.env.MAIL_USER
+        },
+        to: email,
+        subject: 'We received your message - Kusina ni Katya',
+        html: `
           <!DOCTYPE html>
           <html>
           <head>
@@ -89,25 +85,12 @@ exports.submitTicket = async (req, res) => {
             </div>
           </body>
           </html>
-        `;
-
-      try {
-        // Use the emailHelper function which includes retry logic
-        await sendEmail(email, 'We received your message - Kusina ni Katya', html);
-      } catch (emailError) {
-        // Don't throw - email failure shouldn't block the response
-        console.error('⚠️ Failed to send confirmation email:', emailError.message);
-        // Log full error in development
-        if (process.env.NODE_ENV !== 'production') {
-          console.error('Email error details:', emailError);
-        }
-      }
-    };
-
-    // Send email asynchronously (don't await - don't block response)
-    sendConfirmationEmail().catch(err => {
-      console.error('Email sending process error:', err.message);
-    });
+        `
+      });
+      console.log('📧 Confirmation email sent to customer');
+    } catch (emailError) {
+      console.error('⚠️ Failed to send confirmation email:', emailError.message);
+    }
 
     res.json({ 
       success: true, 
@@ -158,7 +141,14 @@ exports.replyToTicket = async (req, res) => {
       });
     }
 
-    const html = `
+    await emailTransporter.sendMail({
+      from: {
+        name: 'Kusina ni Katya Support',
+        address: process.env.MAIL_USER
+      },
+      to: email,
+      subject: `Re: ${subject}`,
+      html: `
         <!DOCTYPE html>
         <html>
         <head>
@@ -209,10 +199,8 @@ exports.replyToTicket = async (req, res) => {
           </div>
         </body>
         </html>
-      `;
-
-    // Send email using emailHelper (includes retry logic)
-    await sendEmail(email, `Re: ${subject}`, html);
+      `
+    });
 
     await db.query(
       'UPDATE support_tickets SET status = ?, replied_at = NOW() WHERE id = ?',

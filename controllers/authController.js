@@ -61,7 +61,7 @@ exports.signup = async (req, res) => {
     });
 
     // Check if email service is configured
-    const emailConfigured = process.env.GMAIL_USER && process.env.GMAIL_PASS;
+    const emailConfigured = process.env.MAIL_USER && process.env.MAIL_PASS;
     if (!emailConfigured) {
       console.error('❌ Email service not configured! Gmail credentials missing.');
       return res.status(500).json({ 
@@ -227,7 +227,7 @@ exports.resendCode = async (req, res) => {
     verificationCodes.set(email, { ...verificationData, code: newCode, expiresAt });
 
     // Check if email service is configured
-    const emailConfigured = process.env.GMAIL_USER && process.env.GMAIL_PASS;
+    const emailConfigured = process.env.MAIL_USER && process.env.MAIL_PASS;
     if (!emailConfigured) {
       console.error('❌ Email service not configured! Gmail credentials missing.');
       return res.status(500).json({ 

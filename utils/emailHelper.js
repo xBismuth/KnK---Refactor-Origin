@@ -1,6 +1,11 @@
 // ==================== EMAIL HELPER FUNCTIONS ====================
 // Using Nodemailer with Gmail SMTP (FREE - No domain verification needed!)
-const { transporter, FROM_EMAIL, FROM_NAME, createTransporter, currentPort } = require('../config/email');
+// Supports both MAIL_USER/MAIL_PASS and GMAIL_USER/GMAIL_PASS for compatibility
+// Railway.com compatible - supports outbound SMTP on ports 465 and 587
+const { transporter, emailTransporter, FROM_EMAIL, FROM_NAME, createTransporter, currentPort } = require('../config/email');
+
+// Use transporter or emailTransporter (backward compatibility)
+const activeTransporter = transporter || emailTransporter;
 
 // Email delivery tracking (in-memory store - consider using Redis for production)
 const emailDeliveryStatus = new Map();
@@ -77,6 +82,7 @@ function isPortBlockedError(error) {
 
 /**
  * Send email using Gmail SMTP with improved retry and error handling
+ * Railway.com compatible - automatically handles port fallback
  * @param {string} toEmail - Recipient email address
  * @param {string} subject - Email subject
  * @param {string} html - HTML email content
@@ -87,15 +93,15 @@ function isPortBlockedError(error) {
 async function sendEmail(toEmail, subject, html, retryCount = 0, useFallbackPort = false) {
   const timestamp = new Date().toISOString();
   
-  if (!transporter) {
-    const error = new Error('Gmail SMTP not configured. Set GMAIL_USER and GMAIL_PASS in .env');
+  if (!activeTransporter) {
+    const error = new Error('Gmail SMTP not configured. Set MAIL_USER/MAIL_PASS or GMAIL_USER/GMAIL_PASS in .env');
     console.error(`[${timestamp}] ❌ ${error.message}`);
     throw error;
   }
 
   try {
     // Use sendMail with optimized options for faster delivery
-    const info = await transporter.sendMail({
+    const info = await activeTransporter.sendMail({
       from: `"${FROM_NAME}" <${FROM_EMAIL}>`,
       to: toEmail,
       subject: subject,
@@ -143,6 +149,7 @@ async function sendEmail(toEmail, subject, html, retryCount = 0, useFallbackPort
     });
     
     // Check if port might be blocked (firewall issue)
+    // Railway.com supports both ports, but fallback helps with network issues
     if (isPortBlockedError(error) && !useFallbackPort && retryCount === 0) {
       console.warn(`[${errorTimestamp}] ⚠️ Possible port/firewall issue detected. Attempting port fallback...`);
       // Try recreating transporter with fallback port
@@ -176,7 +183,7 @@ async function sendEmail(toEmail, subject, html, retryCount = 0, useFallbackPort
     
     // Provide helpful error message
     if (isPortBlockedError(error)) {
-      throw new Error(`Email sending failed: Port may be blocked by firewall. Check if SMTP ports 465/587 are accessible. Original error: ${errorMessage}`);
+      throw new Error(`Email sending failed: Port may be blocked by firewall. Railway.com supports SMTP - check your App Password. Original error: ${errorMessage}`);
     } else if (error.code === 'EAUTH') {
       throw new Error(`Email authentication failed: Check your Gmail App Password. Original error: ${errorMessage}`);
     } else if (error.code === 'ENOTFOUND' || error.code === 'EDNS') {
@@ -226,14 +233,14 @@ async function sendVerificationEmail(toEmail, code, userName = 'Valued Customer'
     <body>
       <div class="container">
         <div class="header">
-          <h1>Kusina ni Katya</h1>
+          <h1>Kusina Ni Katya</h1>
           <p style="margin: 5px 0 0 0; opacity: 0.9;">Authentic Filipino Cuisine</p>
         </div>
         
         <div class="content">
           <p style="font-size: 18px; color: #333; margin-bottom: 20px;">Hello ${userName}! 👋</p>
           <p style="font-size: 16px; color: #666; margin-bottom: 30px;">
-            Thank you for signing up with Kusina ni Katya. To complete your registration, 
+            Thank you for signing up with Kusina Ni Katya. To complete your registration, 
             please use the verification code below:
           </p>
           
@@ -245,13 +252,13 @@ async function sendVerificationEmail(toEmail, code, userName = 'Valued Customer'
           
           <div class="warning">
             <strong style="color: #856404;">🔒 Security Notice:</strong><br>
-            Never share this code with anyone. Kusina ni Katya staff will never ask for this code.
+            Never share this code with anyone. Kusina Ni Katya staff will never ask for this code.
             If you didn't request this code, please ignore this email.
           </div>
         </div>
         
         <div class="footer">
-          <p style="margin: 0 0 10px 0;">© 2025 Kusina ni Katya. All Rights Reserved.</p>
+          <p style="margin: 0 0 10px 0;">© 2025 Kusina Ni Katya. All Rights Reserved.</p>
           <p style="margin: 0;">Aurora Blvd, Quezon City, Manila, Philippines</p>
         </div>
       </div>
@@ -259,7 +266,7 @@ async function sendVerificationEmail(toEmail, code, userName = 'Valued Customer'
     </html>
   `;
 
-  return await sendEmail(toEmail, 'Your Verification Code - Kusina ni Katya', html);
+  return await sendEmail(toEmail, 'Your Verification Code - Kusina Ni Katya', html);
 }
 
 // Send login verification email
@@ -284,7 +291,7 @@ async function sendLoginVerificationEmail(toEmail, code, userName = 'Valued Cust
     <body>
       <div class="container">
         <div class="header">
-          <h1>Kusina ni Katya</h1>
+          <h1>Kusina Ni Katya</h1>
           <p style="margin: 5px 0 0 0; opacity: 0.9;">Authentic Filipino Cuisine</p>
         </div>
         
@@ -308,7 +315,7 @@ async function sendLoginVerificationEmail(toEmail, code, userName = 'Valued Cust
         </div>
         
         <div class="footer">
-          <p style="margin: 0 0 10px 0;">© 2025 Kusina ni Katya. All Rights Reserved.</p>
+          <p style="margin: 0 0 10px 0;">© 2025 Kusina Ni Katya. All Rights Reserved.</p>
           <p style="margin: 0;">Aurora Blvd, Quezon City, Manila, Philippines</p>
         </div>
       </div>
@@ -316,7 +323,7 @@ async function sendLoginVerificationEmail(toEmail, code, userName = 'Valued Cust
     </html>
   `;
 
-  return await sendEmail(toEmail, 'Login Verification Code - Kusina ni Katya', html);
+  return await sendEmail(toEmail, 'Login Verification Code - Kusina Ni Katya', html);
 }
 
 // Send password reset email
@@ -341,7 +348,7 @@ async function sendPasswordResetEmail(toEmail, code, userName = 'Valued Customer
     <body>
       <div class="container">
         <div class="header">
-          <h1>Kusina ni Katya</h1>
+          <h1>Kusina Ni Katya</h1>
           <p style="margin: 5px 0 0 0; opacity: 0.9;">Authentic Filipino Cuisine</p>
         </div>
         
@@ -360,12 +367,12 @@ async function sendPasswordResetEmail(toEmail, code, userName = 'Valued Customer
           <div class="warning">
             <strong style="color: #856404;">🔒 Security Notice:</strong><br>
             If you didn't request a password reset, please ignore this email. Your password will remain unchanged.
-            Never share this code with anyone. Kusina ni Katya staff will never ask for this code.
+            Never share this code with anyone. Kusina Ni Katya staff will never ask for this code.
           </div>
         </div>
         
         <div class="footer">
-          <p style="margin: 0 0 10px 0;">© 2025 Kusina ni Katya. All Rights Reserved.</p>
+          <p style="margin: 0 0 10px 0;">© 2025 Kusina Ni Katya. All Rights Reserved.</p>
           <p style="margin: 0;">Aurora Blvd, Quezon City, Manila, Philippines</p>
         </div>
       </div>
@@ -373,73 +380,7 @@ async function sendPasswordResetEmail(toEmail, code, userName = 'Valued Customer
     </html>
   `;
 
-  return await sendEmail(toEmail, 'Password Reset Code - Kusina ni Katya', html);
-}
-
-// Send contact form notification to admin
-async function sendContactNotification(data) {
-  const { name, email, phone, subject, message } = data;
-
-  const html = `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="UTF-8">
-      <style>
-        body { font-family: 'Segoe UI', sans-serif; background-color: #f4f4f4; margin: 0; padding: 0; }
-        .container { max-width: 600px; margin: 20px auto; background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        .header { background: linear-gradient(135deg, #cda45e 0%, #b8924e 100%); color: white; padding: 30px; text-align: center; }
-        .header h1 { margin: 0; font-size: 28px; }
-        .content { padding: 40px 30px; }
-        .field { margin: 15px 0; padding: 15px; background: #f8f9fa; border-left: 4px solid #cda45e; border-radius: 5px; }
-        .label { font-weight: bold; color: #cda45e; display: block; margin-bottom: 5px; }
-        .value { color: #333; }
-        .message-field { white-space: pre-wrap; }
-        .footer { background: #f8f9fa; padding: 20px; text-align: center; font-size: 14px; color: #666; }
-      </style>
-    </head>
-    <body>
-      <div class="container">
-        <div class="header">
-          <h1>📧 New Contact Form Submission</h1>
-          <p style="margin: 5px 0 0 0; opacity: 0.9;">Kusina ni Katya</p>
-        </div>
-        <div class="content">
-          <div class="field">
-            <span class="label">From:</span>
-            <span class="value">${name}</span>
-          </div>
-          <div class="field">
-            <span class="label">Email:</span>
-            <span class="value"><a href="mailto:${email}">${email}</a></span>
-          </div>
-          ${phone ? `
-          <div class="field">
-            <span class="label">Phone:</span>
-            <span class="value"><a href="tel:${phone}">${phone}</a></span>
-          </div>
-          ` : ''}
-          <div class="field">
-            <span class="label">Subject:</span>
-            <span class="value">${subject}</span>
-          </div>
-          <div class="field">
-            <span class="label">Message:</span>
-            <div class="value message-field">${message}</div>
-          </div>
-        </div>
-        <div class="footer">
-          <p style="margin: 0 0 10px 0;">© 2025 Kusina ni Katya. All Rights Reserved.</p>
-          <p style="margin: 0;">Aurora Blvd, Quezon City, Manila, Philippines</p>
-        </div>
-      </div>
-    </body>
-    </html>
-  `;
-
-  // Send to admin email (use FROM_EMAIL)
-  const adminEmail = FROM_EMAIL;
-  return await sendEmail(adminEmail, `New Contact Form: ${subject}`, html);
+  return await sendEmail(toEmail, 'Password Reset Code - Kusina Ni Katya', html);
 }
 
 module.exports = {
@@ -447,7 +388,6 @@ module.exports = {
   sendVerificationEmail,
   sendLoginVerificationEmail,
   sendPasswordResetEmail,
-  sendContactNotification,
   getEmailDeliveryStatus,
   getAllEmailDeliveryStatuses
 };

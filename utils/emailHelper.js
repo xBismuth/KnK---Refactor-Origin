@@ -1,6 +1,7 @@
 // ==================== EMAIL HELPER FUNCTIONS ====================
-// Using Resend API for fast and reliable email delivery
-const { resend, FROM_EMAIL, FROM_NAME } = require('../config/email');
+// Using Nodemailer with Gmail SMTP (FREE - No domain verification needed!)
+// Falls back to Resend if configured
+const { transporter, resend, FROM_EMAIL, FROM_NAME, EMAIL_SERVICE } = require('../config/email');
 
 // Email delivery tracking (in-memory store - consider using Redis for production)
 const emailDeliveryStatus = new Map();
@@ -20,22 +21,78 @@ function sleep(ms) {
 }
 
 /**
- * Enhanced email sending with retry logic and delivery tracking
+ * Send email using Gmail SMTP (Nodemailer) - FREE, no domain verification needed
  * @param {string} toEmail - Recipient email address
  * @param {string} subject - Email subject
  * @param {string} html - HTML email content
  * @param {number} retryCount - Current retry attempt (internal use)
  * @returns {Promise<{success: boolean, messageId: string, attempts: number}>}
  */
-async function sendEmailWithResend(toEmail, subject, html, retryCount = 0) {
-  // Check if Resend API key is configured
-  if (!process.env.RESEND_API_KEY) {
-    const error = new Error('Resend API key not configured (RESEND_API_KEY missing)');
+async function sendEmailWithGmail(toEmail, subject, html, retryCount = 0) {
+  if (!transporter) {
+    const error = new Error('Gmail SMTP not configured. Set GMAIL_USER and GMAIL_PASS in .env');
     console.error(`❌ ${error.message}`);
     throw error;
   }
 
-  // Check if resend client is initialized
+  try {
+    const info = await transporter.sendMail({
+      from: `"${FROM_NAME}" <${FROM_EMAIL}>`,
+      to: toEmail,
+      subject: subject,
+      html: html
+    });
+
+    // Track successful delivery
+    const messageId = info.messageId || `gmail-${Date.now()}`;
+    const deliveryInfo = {
+      messageId: messageId,
+      toEmail,
+      subject,
+      sentAt: new Date().toISOString(),
+      attempts: retryCount + 1,
+      status: 'sent',
+      service: 'gmail'
+    };
+    
+    emailDeliveryStatus.set(messageId, deliveryInfo);
+    
+    console.log(`✅ Email sent via Gmail to ${toEmail} (ID: ${messageId}, attempts: ${retryCount + 1})`);
+    
+    return { 
+      success: true, 
+      messageId: messageId,
+      attempts: retryCount + 1,
+      deliveryInfo
+    };
+  } catch (error) {
+    // Check if we should retry (network errors, rate limits)
+    const isRetryable = error.code === 'ECONNRESET' || 
+                       error.code === 'ETIMEDOUT' || 
+                       error.code === 'EAUTH' && retryCount === 0; // Retry auth errors once
+    
+    if (isRetryable && retryCount < RETRY_CONFIG.maxRetries) {
+      const delay = RETRY_CONFIG.retryDelay * Math.pow(RETRY_CONFIG.backoffMultiplier, retryCount);
+      console.warn(`⚠️ Email send failed (attempt ${retryCount + 1}/${RETRY_CONFIG.maxRetries}), retrying in ${delay}ms...`, error.message);
+      
+      await sleep(delay);
+      return await sendEmailWithGmail(toEmail, subject, html, retryCount + 1);
+    }
+    
+    console.error(`❌ Error sending email to ${toEmail} after ${retryCount + 1} attempts:`, error.message);
+    throw error;
+  }
+}
+
+/**
+ * Send email using Resend API (requires domain verification)
+ * @param {string} toEmail - Recipient email address
+ * @param {string} subject - Email subject
+ * @param {string} html - HTML email content
+ * @param {number} retryCount - Current retry attempt (internal use)
+ * @returns {Promise<{success: boolean, messageId: string, attempts: number}>}
+ */
+async function sendEmailViaResend(toEmail, subject, html, retryCount = 0) {
   if (!resend) {
     const error = new Error('Resend client not initialized. Check RESEND_API_KEY configuration.');
     console.error(`❌ ${error.message}`);
@@ -52,21 +109,30 @@ async function sendEmailWithResend(toEmail, subject, html, retryCount = 0) {
 
     if (error) {
       // Check for domain verification errors (don't retry these)
-      if (error.message && error.message.includes('domain is not verified')) {
-        console.error('❌ Domain verification error:', error.message);
-        console.error('💡 Solution: Use onboarding@resend.dev for testing, or verify your domain at https://resend.com/domains');
-        throw new Error('Email domain not verified. Use onboarding@resend.dev for testing or verify your domain.');
+      if (error.message && (error.message.includes('domain is not verified') || error.message.includes('validation_error'))) {
+        console.error('❌ Resend API validation error:', error.message);
+        
+        if (error.message.includes('only send testing emails to your own email address')) {
+          console.error('❌ Using onboarding@resend.dev - can only send to account owner!');
+          console.error('💡 SOLUTION: Verify your domain at https://resend.com/domains');
+          throw new Error('Cannot send to this email. Verify your domain in Resend and set RESEND_FROM_EMAIL to use your verified domain.');
+        }
+        
+        if (error.message.includes('domain is not verified')) {
+          console.error('❌ Domain verification error:', error.message);
+          throw new Error('Email domain not verified. Please verify your domain at https://resend.com/domains');
+        }
       }
       
       // Check if we should retry
-      const isRetryable = error.statusCode >= 500 || error.statusCode === 429; // Server errors or rate limit
+      const isRetryable = error.statusCode >= 500 || error.statusCode === 429;
       
       if (isRetryable && retryCount < RETRY_CONFIG.maxRetries) {
         const delay = RETRY_CONFIG.retryDelay * Math.pow(RETRY_CONFIG.backoffMultiplier, retryCount);
         console.warn(`⚠️ Email send failed (attempt ${retryCount + 1}/${RETRY_CONFIG.maxRetries}), retrying in ${delay}ms...`, error.message);
         
         await sleep(delay);
-        return await sendEmailWithResend(toEmail, subject, html, retryCount + 1);
+        return await sendEmailViaResend(toEmail, subject, html, retryCount + 1);
       }
       
       console.error('❌ Resend API error:', error);
@@ -80,7 +146,8 @@ async function sendEmailWithResend(toEmail, subject, html, retryCount = 0) {
       subject,
       sentAt: new Date().toISOString(),
       attempts: retryCount + 1,
-      status: 'sent'
+      status: 'sent',
+      service: 'resend'
     };
     
     emailDeliveryStatus.set(data?.id, deliveryInfo);
@@ -105,6 +172,23 @@ async function sendEmailWithResend(toEmail, subject, html, retryCount = 0) {
     
     console.error(`❌ Error sending email to ${toEmail} after ${retryCount + 1} attempts:`, error.message);
     throw error;
+  }
+}
+
+/**
+ * Main email sending function - automatically chooses Gmail (default) or Resend
+ * @param {string} toEmail - Recipient email address
+ * @param {string} subject - Email subject
+ * @param {string} html - HTML email content
+ * @returns {Promise<{success: boolean, messageId: string, attempts: number}>}
+ */
+async function sendEmailWithResend(toEmail, subject, html) {
+  // Use Gmail by default (free, no domain verification)
+  // Use Resend if explicitly configured via EMAIL_SERVICE=resend
+  if (EMAIL_SERVICE === 'resend' && resend) {
+    return await sendEmailViaResend(toEmail, subject, html);
+  } else {
+    return await sendEmailWithGmail(toEmail, subject, html);
   }
 }
 
@@ -358,8 +442,7 @@ async function sendContactNotification(data) {
     </html>
   `;
 
-  // Send to admin email (use FROM_EMAIL which is always onboarding@resend.dev)
-  // For admin notifications, send to the same verified email address
+  // Send to admin email (use FROM_EMAIL)
   const adminEmail = FROM_EMAIL;
   return await sendEmailWithResend(adminEmail, `New Contact Form: ${subject}`, html);
 }

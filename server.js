@@ -75,7 +75,7 @@ app.get('/api/health', (req, res) => {
     timestamp: new Date().toISOString(),
     database: 'connected',
     paymongo: process.env.PAYMONGO_SECRET_KEY ? 'configured' : 'not configured',
-    email: process.env.RESEND_API_KEY ? 'configured (Resend)' : 'not configured',
+    email: (process.env.GMAIL_USER && process.env.GMAIL_PASS) ? 'configured (Gmail)' : (process.env.RESEND_API_KEY ? 'configured (Resend)' : 'not configured'),
     domain: 'kusinanikatya.up.railway.app',
     socketio: 'enabled'
   });
@@ -146,7 +146,7 @@ app.use((err, req, res, next) => {
 // ==================== START SERVER ====================
 server.listen(PORT, () => {
   const paymongoOk = !!process.env.PAYMONGO_SECRET_KEY;
-  const emailOk = !!process.env.RESEND_API_KEY;
+  const emailOk = !!(process.env.GMAIL_USER && process.env.GMAIL_PASS) || !!process.env.RESEND_API_KEY;
   const jwtOk = !!process.env.JWT_SECRET;
   const dbName = process.env.DB_NAME || 'kusina_db';
 

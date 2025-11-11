@@ -5,11 +5,11 @@ const { transporter, FROM_EMAIL, FROM_NAME } = require('../config/email');
 // Email delivery tracking (in-memory store - consider using Redis for production)
 const emailDeliveryStatus = new Map();
 
-// Retry configuration
+// Retry configuration (optimized for speed)
 const RETRY_CONFIG = {
-  maxRetries: 3,
-  retryDelay: 1000, // 1 second base delay
-  backoffMultiplier: 2 // Exponential backoff
+  maxRetries: 2, // Reduced from 3 to 2 for faster failure
+  retryDelay: 300, // Reduced from 1000ms to 300ms for faster retry
+  backoffMultiplier: 1.5 // Reduced from 2 to 1.5 for less delay
 };
 
 /**
@@ -35,11 +35,18 @@ async function sendEmail(toEmail, subject, html, retryCount = 0) {
   }
 
   try {
+    // Use sendMail with optimized options for faster delivery
     const info = await transporter.sendMail({
       from: `"${FROM_NAME}" <${FROM_EMAIL}>`,
       to: toEmail,
       subject: subject,
-      html: html
+      html: html,
+      // Optimize for speed
+      priority: 'high', // High priority for verification codes
+      headers: {
+        'X-Priority': '1', // High priority
+        'X-MSMail-Priority': 'High'
+      }
     });
 
     // Track successful delivery

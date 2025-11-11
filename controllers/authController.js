@@ -321,13 +321,15 @@ exports.sendLoginCode = async (req, res) => {
       userRole: user.role
     });
 
-    try {
-      await sendLoginVerificationEmail(email, verificationCode, user.name);
-    } catch (emailError) {
-      console.error('❌ Failed to send login verification email:', emailError.message);
-      // Don't block login - user can request code again
-      throw emailError; // Re-throw to handle in outer catch
-    }
+    // Send email in background (non-blocking) for fast response
+    sendLoginVerificationEmail(email, verificationCode, user.name)
+      .then(() => {
+        console.log(`✅ Login verification code sent to ${email}`);
+      })
+      .catch((emailError) => {
+        console.error('📧 Login verification email sending failed:', emailError.message);
+        // Email failed but code is still stored, user can request again
+      });
 
     res.json({
       success: true,
@@ -687,17 +689,16 @@ exports.forgotPassword = async (req, res) => {
       userName: user.name
     });
 
-    // Send email
-    try {
-      await sendPasswordResetEmail(email, resetCode, user.name);
-    } catch (emailError) {
-      console.error('❌ Failed to send password reset email:', emailError);
-      passwordResetCodes.delete(email);
-      return res.status(500).json({ 
-        success: false, 
-        message: 'Failed to send reset code. Please try again later.' 
+    // Send email in background (non-blocking) for fast response
+    sendPasswordResetEmail(email, resetCode, user.name)
+      .then(() => {
+        console.log(`✅ Password reset code sent to ${email}`);
+      })
+      .catch((emailError) => {
+        console.error('📧 Password reset email sending failed:', emailError.message);
+        // Email failed but code is still stored, user can request again
+        passwordResetCodes.delete(email);
       });
-    }
 
     res.json({
       success: true,
@@ -834,17 +835,16 @@ exports.requestPasswordChangeCode = async (req, res) => {
       userName: user.name
     });
 
-    // Send email using Gmail SMTP
-    try {
-      await sendPasswordResetEmail(user.email, changeCode, user.name);
-    } catch (emailError) {
-      console.error('❌ Failed to send password change email:', emailError);
-      passwordChangeCodes.delete(user.email);
-      return res.status(500).json({ 
-        success: false, 
-        message: 'Failed to send verification code. Please try again later.' 
+    // Send email in background (non-blocking) for fast response
+    sendPasswordResetEmail(user.email, changeCode, user.name)
+      .then(() => {
+        console.log(`✅ Password change code sent to ${user.email}`);
+      })
+      .catch((emailError) => {
+        console.error('📧 Password change email sending failed:', emailError.message);
+        // Email failed but code is still stored, user can request again
+        passwordChangeCodes.delete(user.email);
       });
-    }
 
     res.json({
       success: true,

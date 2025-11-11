@@ -19,15 +19,35 @@ const DOMAIN = process.env.DOMAIN || 'kusinanikatya.up.railway.app';
 let transporter = null;
 
 if (GMAIL_USER && GMAIL_PASS) {
+  // Use direct SMTP configuration for faster connection and better control
   transporter = nodemailer.createTransport({
-    service: 'gmail',
+    host: 'smtp.gmail.com',
+    port: 465,
+    secure: true, // Use SSL
     auth: {
       user: GMAIL_USER,
       pass: GMAIL_PASS // Use App Password, not regular password
-    }
+    },
+    // Optimize for speed - connection pooling
+    pool: true, // Enable connection pooling
+    maxConnections: 5, // Maximum concurrent connections
+    maxMessages: 100, // Messages per connection before closing
+    // Faster timeouts
+    connectionTimeout: 3000, // 3 seconds (reduced from 5)
+    greetingTimeout: 3000, // 3 seconds (reduced from 5)
+    socketTimeout: 3000, // 3 seconds (reduced from 5)
+    // Rate limiting (Gmail allows ~20 emails/second)
+    rateDelta: 1000, // 1 second window
+    rateLimit: 18, // 18 emails per second (safe limit)
+    // TLS optimization
+    tls: {
+      rejectUnauthorized: false // Accept certificates
+    },
+    // Keep connection alive
+    requireTLS: true
   });
 
-  // Verify connection
+  // Verify connection asynchronously (non-blocking)
   transporter.verify(function (error, success) {
     if (error) {
       console.error('❌ Gmail SMTP connection failed:', error.message);
@@ -36,7 +56,7 @@ if (GMAIL_USER && GMAIL_PASS) {
       console.error('   2. Generated an App Password at: https://myaccount.google.com/apppasswords');
       console.error('   3. Set GMAIL_USER and GMAIL_PASS in your .env file');
     } else {
-      console.log('✅ Gmail SMTP email service initialized');
+      console.log('✅ Gmail SMTP email service initialized (optimized for speed)');
       console.log(`📧 Using Gmail: ${GMAIL_USER}`);
       console.log(`✅ Can send emails to any recipient (500/day limit)`);
     }

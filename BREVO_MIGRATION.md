@@ -36,10 +36,13 @@ FROM_NAME=Kusina Ni Katya
 
 1. **Sign up**: https://app.brevo.com/account/register
 2. **Go to**: Settings → SMTP & API → API Keys
-3. **Click**: "Generate a new API key"
-4. **Name it**: "Kusina Ni Katya Production"
-5. **Copy the key**: It starts with `xkeysib-`
-6. **Add to Railway**: Variables tab → Add `BREVO_API_KEY`
+3. **IMPORTANT**: Select **"API v3"** (NOT "SMTP")
+4. **Click**: "Generate a new API key"
+5. **Name it**: "Kusina Ni Katya Production"
+6. **Copy the key**: It MUST start with `xkeysib-` (NOT `xsmtpsib-`)
+7. **Add to Railway**: Variables tab → Add `BREVO_API_KEY`
+
+⚠️ **Critical**: If your key starts with `xsmtpsib-`, it's an SMTP key and won't work with the REST API. You need an API v3 key that starts with `xkeysib-`.
 
 ## Benefits of Brevo
 
@@ -109,12 +112,15 @@ When sending emails:
 
 **Solution**: Add `BREVO_API_KEY` to Railway Variables tab
 
-### ❌ "Brevo API error: Invalid API key"
+### ❌ "Brevo API error: Key not found" or "Invalid API key"
 
 **Solution**: 
-- Verify API key is correct (starts with `xkeysib-`)
+- **IMPORTANT**: You need an **API v3 key** (starts with `xkeysib-`), NOT an SMTP key (`xsmtpsib-`)
+- Go to Brevo dashboard → Settings → SMTP & API → API Keys
+- Generate a **NEW "API v3" key** (not SMTP key)
+- The key should start with `xkeysib-` not `xsmtpsib-`
 - Check for extra spaces in Railway Variables
-- Regenerate API key in Brevo dashboard
+- Regenerate API key if needed
 
 ### ❌ "Brevo API error: Unauthorized"
 

@@ -654,6 +654,15 @@ exports.forgotPassword = async (req, res) => {
       });
     }
 
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Invalid email format' 
+      });
+    }
+
     // Check if user exists
     const [users] = await db.query(
       'SELECT id, email, name, auth_type FROM users WHERE email = ?',
@@ -728,6 +737,24 @@ exports.resetPassword = async (req, res) => {
       });
     }
 
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Invalid email format' 
+      });
+    }
+
+    // Validate code format (6 digits)
+    const codeStr = String(code).trim();
+    if (!/^\d{6}$/.test(codeStr)) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Invalid code format. Code must be 6 digits.' 
+      });
+    }
+
     // Validate password length
     if (newPassword.length < 6) {
       return res.status(400).json({ 
@@ -753,7 +780,11 @@ exports.resetPassword = async (req, res) => {
       });
     }
 
-    if (resetData.code !== code) {
+    // Compare codes as strings (trim and normalize)
+    const storedCode = String(resetData.code).trim();
+    const providedCode = String(code).trim();
+    
+    if (storedCode !== providedCode) {
       return res.status(400).json({ 
         success: false, 
         message: 'Invalid reset code. Please try again.' 
@@ -765,10 +796,19 @@ exports.resetPassword = async (req, res) => {
     const hashedPassword = await bcrypt.hash(newPassword, saltRounds);
 
     // Update password in database
-    await db.query(
+    const [updateResult] = await db.query(
       'UPDATE users SET password_hash = ? WHERE id = ? AND email = ? AND auth_type = ?',
       [hashedPassword, resetData.userId, email, 'email']
     );
+
+    // Check if update was successful
+    if (updateResult.affectedRows === 0) {
+      console.error(`⚠️ Password update failed for user ${resetData.userId} (${email})`);
+      return res.status(500).json({ 
+        success: false, 
+        message: 'Failed to update password. Please try again.' 
+      });
+    }
 
     // Delete used reset code
     passwordResetCodes.delete(email);

@@ -262,7 +262,7 @@ exports.resendCode = async (req, res) => {
 // Send login verification code
 exports.sendLoginCode = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, rememberMe } = req.body;
     if (!email || !password)
       return res.status(400).json({ success: false, message: 'Email and password are required' });
 
@@ -283,6 +283,10 @@ exports.sendLoginCode = async (req, res) => {
     if (user.role === 'admin') {
       await db.query('UPDATE users SET last_login = NOW() WHERE id = ?', [user.id]);
 
+      // Determine token expiry based on rememberMe flag for admin
+      const rememberMe = req.body.rememberMe === true || req.body.rememberMe === 'true';
+      const tokenExpiry = rememberMe ? '30d' : '7d';
+
       const token = jwt.sign(
         { 
           userId: user.id,
@@ -291,7 +295,7 @@ exports.sendLoginCode = async (req, res) => {
           role: user.role
         },
         JWT_SECRET,
-        { expiresIn: '7d' }
+        { expiresIn: tokenExpiry }
       );
 
       return res.json({
@@ -299,6 +303,7 @@ exports.sendLoginCode = async (req, res) => {
         skipVerification: true,
         message: 'Admin login successful',
         token,
+        rememberMe: rememberMe,
         user: {
           id: user.id,
           email,
@@ -318,7 +323,8 @@ exports.sendLoginCode = async (req, res) => {
       expiresAt,
       userId: user.id,
       userName: user.name,
-      userRole: user.role
+      userRole: user.role,
+      rememberMe: rememberMe === true || rememberMe === 'true'
     });
 
     // Send email in background (non-blocking) for fast response
@@ -366,6 +372,10 @@ exports.verifyLoginCode = async (req, res) => {
 
     await db.query('UPDATE users SET last_login = NOW() WHERE id = ?', [loginData.userId]);
 
+    // Determine token expiry based on rememberMe flag
+    const rememberMe = loginData.rememberMe === true || loginData.rememberMe === 'true';
+    const tokenExpiry = rememberMe ? '30d' : '7d'; // 30 days for remember me, 7 days otherwise
+
     // ✅ Consistent userId in token
     const token = jwt.sign(
       { 
@@ -375,7 +385,7 @@ exports.verifyLoginCode = async (req, res) => {
         role: loginData.userRole
       },
       JWT_SECRET,
-      { expiresIn: '7d' }
+      { expiresIn: tokenExpiry }
     );
 
     loginVerificationCodes.delete(email);
@@ -384,6 +394,7 @@ exports.verifyLoginCode = async (req, res) => {
       success: true,
       message: 'Login successful',
       token,
+      rememberMe: rememberMe,
       user: {
         id: loginData.userId,
         email,

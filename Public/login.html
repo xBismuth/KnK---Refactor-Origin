@@ -234,7 +234,7 @@ body {
           <!-- Remember Me & Forgot Password -->
           <div class="flex items-center justify-between mb-6">
             <label class="flex items-center cursor-pointer">
-              <input type="checkbox" class="w-4 h-4 text-accent border-gray-300 rounded focus:ring-accent">
+              <input type="checkbox" id="remember-me" class="w-4 h-4 text-accent border-gray-300 rounded focus:ring-accent">
               <span class="ml-2 text-sm text-gray-600">Remember me</span>
             </label>
             <a href="#" onclick="openForgotPasswordModal(); return false;" class="text-sm text-accent hover:text-accent-dark font-semibold transition-colors duration-300">
@@ -611,10 +611,14 @@ function proceedToVerification() {
     signinBtn.classList.add('opacity-75', 'cursor-not-allowed');
   }
 
+  // Check if "Remember Me" is checked
+  const rememberMeCheckbox = document.getElementById('remember-me');
+  const rememberMe = rememberMeCheckbox ? rememberMeCheckbox.checked : false;
+
   fetch('/auth/send-login-code', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password })
+    body: JSON.stringify({ email, password, rememberMe })
   })
   .then(async (res) => {
     // capture JSON if possible, but protect against empty body
@@ -638,6 +642,12 @@ function proceedToVerification() {
           sessionStorage.setItem('authToken', data.token);
           localStorage.setItem('adminToken', data.token);
           console.log('✅ Admin token stored:', data.token.substring(0, 20) + '...');
+          // Store remember me preference
+          if (data.rememberMe) {
+            localStorage.setItem('rememberMe', 'true');
+          } else {
+            localStorage.removeItem('rememberMe');
+          }
         }
         if (data.user) {
           localStorage.setItem('currentUser', JSON.stringify(data.user));
@@ -744,9 +754,15 @@ async function verifyLoginCode() {
         // Store admin token separately for admin users
         if (payload.user && payload.user.role === 'admin') {
           localStorage.setItem('adminToken', payload.token);
-        } else if (payload.user && payload.user.role !== 'admin') {
-          // persist token across reloads for non-admin users only
+        } else {
+          // Store token in localStorage for remember me functionality
           localStorage.setItem('authToken', payload.token);
+        }
+        // Store remember me preference
+        if (payload.rememberMe) {
+          localStorage.setItem('rememberMe', 'true');
+        } else {
+          localStorage.removeItem('rememberMe');
         }
       }
       if (payload.user) localStorage.setItem('currentUser', JSON.stringify(payload.user));
@@ -967,8 +983,70 @@ window.addEventListener('error', (event) => {
   }
 });
 
+/* ---------- Auto-login check for Remember Me ---------- */
+async function checkAutoLogin() {
+  try {
+    // Check if user has a valid token
+    const token = localStorage.getItem('authToken') || localStorage.getItem('adminToken');
+    const rememberMe = localStorage.getItem('rememberMe');
+    
+    if (!token || !rememberMe) {
+      return; // No token or remember me not set, skip auto-login
+    }
+
+    // Determine API base URL
+    const API_BASE = window.location.origin.startsWith('file:') 
+      ? 'http://localhost:3000' 
+      : '';
+
+    // Verify token is still valid
+    const res = await fetch(`${API_BASE}/auth/me`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      if (data.success && data.user) {
+        // Token is valid, auto-login
+        console.log('✅ Auto-login: Valid token found, redirecting...');
+        
+        // Store user info if not already stored
+        if (data.user) {
+          localStorage.setItem('currentUser', JSON.stringify(data.user));
+        }
+
+        // Redirect based on role
+        if (data.user.role === 'admin') {
+          window.location.href = 'dashboard.html';
+        } else {
+          window.location.href = 'index.html';
+        }
+        return;
+      }
+    } else {
+      // Token is invalid, clear it
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('adminToken');
+      localStorage.removeItem('rememberMe');
+      localStorage.removeItem('currentUser');
+    }
+  } catch (error) {
+    console.log('Auto-login check failed (this is normal if not logged in):', error.message);
+    // Clear invalid tokens
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('adminToken');
+    localStorage.removeItem('rememberMe');
+  }
+}
+
 /* ---------- Small DOM safety + event wiring ---------- */
 document.addEventListener('DOMContentLoaded', () => {
+  // Check for auto-login first
+  checkAutoLogin();
+
   // wire up modal click to close
   const successModal = document.getElementById('success-modal');
   if (successModal) {

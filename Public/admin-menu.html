@@ -124,13 +124,21 @@
   .modal-content {
     background: white;
     border-radius: 16px;
-    padding: 28px;
+    padding: 20px;
     max-width: 500px;
-    width: 90%;
-    max-height: 85vh;
+    width: 95%;
+    max-height: 90vh;
     overflow-y: auto;
     box-shadow: 0 20px 60px rgba(0,0,0,0.3);
     animation: slideIn 0.3s ease-out;
+  }
+  
+  @media (min-width: 640px) {
+    .modal-content {
+      padding: 28px;
+      width: 90%;
+      max-height: 85vh;
+    }
   }
   
   @keyframes slideIn {
@@ -154,6 +162,7 @@
     border-radius: 8px;
     font-size: 14px;
     transition: all 0.3s;
+    box-sizing: border-box;
   }
   
   .form-input:focus, .form-textarea:focus, .form-select:focus {
@@ -203,7 +212,7 @@
   
   .image-preview {
     width: 100%;
-    height: 180px;
+    height: 150px;
     border: 2px dashed #e5e7eb;
     border-radius: 8px;
     display: flex;
@@ -211,6 +220,12 @@
     justify-content: center;
     overflow: hidden;
     background: #fafafa;
+  }
+  
+  @media (min-width: 640px) {
+    .image-preview {
+      height: 180px;
+    }
   }
   
   .image-preview img {
@@ -503,7 +518,7 @@ function renderMenuItems() {
     const imgSrc = imageUrl || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iI2YzZjRmNiIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkeT0iLjNlbSIgZmlsbD0iIzljYTNhZiIgZm9udC1zaXplPSIxMiI+Tm8gSW1hZ2U8L3RleHQ+PC9zdmc+';
     
     card.innerHTML = `
-      <div style="width: 100%; height: 160px; border-radius: 6px; margin-bottom: 12px; overflow: hidden; background: #f3f4f6; display: flex; align-items: center; justify-content: center;">
+      <div style="width: 100%; height: 140px; border-radius: 6px; margin-bottom: 12px; overflow: hidden; background: #f3f4f6; display: flex; align-items: center; justify-content: center;">
         <img src="${imgSrc}" alt="${item.name}" 
              style="width: 100%; height: 100%; object-fit: cover;"
              onerror="console.error('❌ Image load error for item ${item.id}:', '${imageUrl || 'no-url'}'); this.style.display='none'; this.parentElement.innerHTML='<div style=\\'width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:#9ca3af;font-size:12px\\'>No Image</div>';">
@@ -515,15 +530,15 @@ function renderMenuItems() {
         ${item.badge ? `<span class="badge" style="background: #e0e7ff; color: #4338ca;">${item.badge}</span>` : ''}
       </div>
       
-      <h3 class="text-base font-semibold mb-1">${item.name}</h3>
+      <h3 class="text-sm sm:text-base font-semibold mb-1">${item.name}</h3>
       <p class="text-xs text-gray-500 mb-1">${item.category || 'main'}</p>
       <p class="text-xs text-gray-600 mb-3 line-clamp-2">${item.description || 'No description'}</p>
       
-      <div class="text-lg font-semibold text-[#cda45e] mb-3">₱${parseFloat(item.price || 0).toFixed(2)}</div>
+      <div class="text-base sm:text-lg font-semibold text-[#cda45e] mb-3">₱${parseFloat(item.price || 0).toFixed(2)}</div>
       
-      <div class="flex gap-2">
-        <button onclick="editItem(${item.id})" class="flex-1 btn btn-secondary">Edit</button>
-        <button onclick="openDeleteModal(${item.id}, '${escapeForAttr(item.name)}')" class="flex-1 btn btn-danger">Delete</button>
+      <div class="flex flex-col sm:flex-row gap-2">
+        <button onclick="editItem(${item.id})" class="flex-1 btn btn-secondary text-xs sm:text-sm">Edit</button>
+        <button onclick="openDeleteModal(${item.id}, '${escapeForAttr(item.name)}')" class="flex-1 btn btn-danger text-xs sm:text-sm">Delete</button>
       </div>
     `;
     grid.appendChild(card);

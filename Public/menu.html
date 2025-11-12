@@ -115,12 +115,21 @@ body {
 
 .cart-item {
   display: flex;
-  gap: 1rem;
-  padding: 1rem;
+  gap: 0.75rem;
+  padding: 0.75rem;
   border-radius: 1rem;
   background: #f9f9f9;
   margin-bottom: 1rem;
   transition: all 0.3s ease;
+  flex-wrap: wrap;
+}
+
+@media (min-width: 640px) {
+  .cart-item {
+    gap: 1rem;
+    padding: 1rem;
+    flex-wrap: nowrap;
+  }
 }
 
 .cart-item:hover {
@@ -129,10 +138,18 @@ body {
 }
 
 .cart-item-image {
-  width: 80px;
-  height: 80px;
+  width: 60px;
+  height: 60px;
   border-radius: 0.75rem;
   object-fit: cover;
+  flex-shrink: 0;
+}
+
+@media (min-width: 640px) {
+  .cart-item-image {
+    width: 80px;
+    height: 80px;
+  }
 }
 
 .cart-item-details {
@@ -140,10 +157,16 @@ body {
 }
 
 .cart-item-name {
-  font-size: 1.125rem;
+  font-size: 0.875rem;
   font-weight: 600;
   color: #1a1a1a;
   margin-bottom: 0.25rem;
+}
+
+@media (min-width: 640px) {
+  .cart-item-name {
+    font-size: 1.125rem;
+  }
 }
 
 .cart-item-price {
@@ -210,7 +233,7 @@ body {
 
 .search-icon {
   position: absolute;
-  left: 1rem;
+  left: 0.75rem;
   top: 50%;
   transform: translateY(-50%);
   color: #9ca3af;
@@ -218,11 +241,23 @@ body {
 
 #search-input {
   width: 100%;
-  padding: 1rem 1rem 1rem 3rem;
+  padding: 0.75rem 0.75rem 0.75rem 2.5rem;
   border: 2px solid #e5e7eb;
   border-radius: 9999px;
-  font-size: 1rem;
+  font-size: 0.875rem;
   transition: all 0.3s ease;
+  box-sizing: border-box;
+}
+
+@media (min-width: 640px) {
+  .search-icon {
+    left: 1rem;
+  }
+  
+  #search-input {
+    padding: 1rem 1rem 1rem 3rem;
+    font-size: 1rem;
+  }
 }
 
 #search-input:focus {
@@ -358,26 +393,27 @@ body {
   </nav>
 </header>
 
-<section class="relative py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-accent-dark/10 to-cream">
+<section class="relative py-12 sm:py-16 lg:py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-accent-dark/10 to-cream">
   <div class="max-w-7xl mx-auto text-center">
-    <h1 class="font-quiapo text-5xl md:text-6xl font-bold text-dark mb-4 animate-slide-up">
+    <h1 class="font-quiapo text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-dark mb-3 sm:mb-4 animate-slide-up">
      <span class="text-accent">Our Menu</span>
     </h1>
-    <div class="w-32 h-1 bg-gradient-to-r from-accent-dark via-accent to-accent-light mx-auto rounded-full mb-6"></div>
-    <p class="text-xl text-gray-700 max-w-3xl mx-auto animate-fade-in mb-8">
+    <div class="w-24 sm:w-32 h-1 bg-gradient-to-r from-accent-dark via-accent to-accent-light mx-auto rounded-full mb-4 sm:mb-6"></div>
+    <p class="text-base sm:text-lg lg:text-xl text-gray-700 max-w-3xl mx-auto animate-fade-in mb-6 sm:mb-8 px-2">
       Explore our delicious selection of authentic Filipino dishes, lovingly prepared with traditional recipes and fresh ingredients
     </p>
     
     <!-- Search Bar -->
-    <div class="search-container mt-8">
-      <svg class="search-icon w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <div class="search-container mt-6 sm:mt-8">
+      <svg class="search-icon w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
       </svg>
       <input 
         type="text" 
         id="search-input" 
-        placeholder="Search for dishes... (e.g., Adobo, Sinigang, Desserts)"
+        placeholder="Search for dishes..."
         onkeyup="searchMenu()"
+        class="text-sm sm:text-base"
       />
     </div>
   </div>
@@ -385,20 +421,20 @@ body {
 
 <section class="py-12 px-4 sm:px-6 lg:px-8">
   <div class="max-w-7xl mx-auto">
-    <div class="flex flex-wrap justify-center gap-3 mb-12">
-      <button onclick="scrollToCategory('all', this)" class="filter-btn active px-6 py-3 rounded-full font-semibold transition-all duration-300 bg-gray-100 hover:bg-accent hover:text-white">
+    <div class="flex flex-wrap justify-center gap-2 sm:gap-3 mb-8 sm:mb-12 px-2">
+      <button onclick="scrollToCategory('all', this)" class="filter-btn active px-4 sm:px-6 py-2 sm:py-3 rounded-full font-semibold transition-all duration-300 bg-gray-100 hover:bg-accent hover:text-white text-xs sm:text-sm">
         All Items
       </button>
-      <button onclick="scrollToCategory('main', this)" class="filter-btn px-6 py-3 rounded-full font-semibold transition-all duration-300 bg-gray-100 hover:bg-accent hover:text-white">
+      <button onclick="scrollToCategory('main', this)" class="filter-btn px-4 sm:px-6 py-2 sm:py-3 rounded-full font-semibold transition-all duration-300 bg-gray-100 hover:bg-accent hover:text-white text-xs sm:text-sm">
         Main Course
       </button>
-      <button onclick="scrollToCategory('breakfast', this)" class="filter-btn px-6 py-3 rounded-full font-semibold transition-all duration-300 bg-gray-100 hover:bg-accent hover:text-white">
+      <button onclick="scrollToCategory('breakfast', this)" class="filter-btn px-4 sm:px-6 py-2 sm:py-3 rounded-full font-semibold transition-all duration-300 bg-gray-100 hover:bg-accent hover:text-white text-xs sm:text-sm">
         Breakfast
       </button>
-      <button onclick="scrollToCategory('dessert', this)" class="filter-btn px-6 py-3 rounded-full font-semibold transition-all duration-300 bg-gray-100 hover:bg-accent hover:text-white">
+      <button onclick="scrollToCategory('dessert', this)" class="filter-btn px-4 sm:px-6 py-2 sm:py-3 rounded-full font-semibold transition-all duration-300 bg-gray-100 hover:bg-accent hover:text-white text-xs sm:text-sm">
         Desserts
       </button>
-      <button onclick="scrollToCategory('drink', this)" class="filter-btn px-6 py-3 rounded-full font-semibold transition-all duration-300 bg-gray-100 hover:bg-accent hover:text-white">
+      <button onclick="scrollToCategory('drink', this)" class="filter-btn px-4 sm:px-6 py-2 sm:py-3 rounded-full font-semibold transition-all duration-300 bg-gray-100 hover:bg-accent hover:text-white text-xs sm:text-sm">
         Drinks
       </button>
     </div>
@@ -424,15 +460,15 @@ body {
 </section>
 
 <!-- FLOATING CART MODAL -->
-<div id="cart-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 backdrop-blur-sm">
-  <div class="bg-white rounded-3xl p-8 max-w-2xl w-full mx-4 shadow-2xl animate-scale-in max-h-[80vh] flex flex-col">
+<div id="cart-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+  <div class="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 lg:p-8 max-w-2xl w-full mx-4 shadow-2xl animate-scale-in max-h-[90vh] sm:max-h-[80vh] flex flex-col">
     <!-- Header -->
-    <div class="flex justify-between items-center mb-6 pb-4 border-b-2 border-accent/30">
-      <h3 class="text-3xl font-bold text-dark">
+    <div class="flex justify-between items-center mb-4 sm:mb-6 pb-3 sm:pb-4 border-b-2 border-accent/30">
+      <h3 class="text-2xl sm:text-3xl font-bold text-dark">
         <span class="text-accent">Your Cart</span> 🛒
       </h3>
       <button onclick="closeCartModal()" class="text-gray-500 hover:text-accent transition-colors duration-300">
-        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg class="w-6 h-6 sm:w-8 sm:h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
         </svg>
       </button>
@@ -444,22 +480,22 @@ body {
     </div>
 
     <!-- Cart Summary -->
-    <div class="border-t-2 border-accent/30 pt-4">
-      <div class="flex justify-between items-center mb-4">
-        <span class="text-xl font-semibold text-dark">Subtotal:</span>
-        <span id="cart-subtotal" class="text-2xl font-bold text-accent">₱0</span>
+    <div class="border-t-2 border-accent/30 pt-3 sm:pt-4">
+      <div class="flex justify-between items-center mb-3 sm:mb-4">
+        <span class="text-base sm:text-xl font-semibold text-dark">Subtotal:</span>
+        <span id="cart-subtotal" class="text-xl sm:text-2xl font-bold text-accent">₱0</span>
       </div>
-      <div class="flex justify-between items-center mb-6">
-        <span class="text-lg font-semibold text-dark">Total Items:</span>
-        <span id="cart-total-items" class="text-xl font-bold text-dark">0</span>
+      <div class="flex justify-between items-center mb-4 sm:mb-6">
+        <span class="text-sm sm:text-lg font-semibold text-dark">Total Items:</span>
+        <span id="cart-total-items" class="text-lg sm:text-xl font-bold text-dark">0</span>
       </div>
 
       <!-- Action Buttons -->
-      <div class="flex gap-4">
-        <button onclick="closeCartModal()" class="flex-1 px-6 py-3 border-2 border-accent text-accent font-semibold rounded-full hover:bg-accent/10 transition-all duration-300">
+      <div class="flex flex-col sm:flex-row gap-3 sm:gap-4">
+        <button onclick="closeCartModal()" class="flex-1 px-4 sm:px-6 py-2.5 sm:py-3 border-2 border-accent text-accent font-semibold rounded-full hover:bg-accent/10 transition-all duration-300 text-sm sm:text-base">
           Continue Shopping
         </button>
-        <button onclick="proceedToCheckout()" class="flex-1 px-6 py-3 bg-gradient-to-r from-accent to-accent-dark text-white font-semibold rounded-full hover:shadow-lg hover:scale-105 transition-all duration-300">
+        <button onclick="proceedToCheckout()" class="flex-1 px-4 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-accent to-accent-dark text-white font-semibold rounded-full hover:shadow-lg hover:scale-105 transition-all duration-300 text-sm sm:text-base">
           Proceed to Checkout →
         </button>
       </div>
@@ -957,7 +993,15 @@ function renderMenuByCategories() {
 }
 
 function createMenuCard(item) {
-  const imageUrl = item.image_url || 'assets/images/placeholder.jpg';
+  // Ensure image URL has proper path format
+  let imageUrl = item.image_url || 'assets/images/placeholder.jpg';
+  if (imageUrl && imageUrl !== 'assets/images/placeholder.jpg') {
+    // If image_url doesn't start with / or http, add leading slash
+    if (!imageUrl.startsWith('/') && !imageUrl.startsWith('http') && !imageUrl.startsWith('assets/')) {
+      imageUrl = '/' + imageUrl;
+    }
+  }
+  
   const badge = item.badge ? `<span class="absolute top-4 right-4 bg-accent text-white px-3 py-1 rounded-full text-xs font-bold">${escapeHtml(item.badge)}</span>` : '';
   const featured = item.is_featured ? '<span class="absolute top-4 left-4 bg-yellow-400 text-dark px-3 py-1 rounded-full text-xs font-bold">⭐ Featured</span>' : '';
   
@@ -967,7 +1011,7 @@ function createMenuCard(item) {
         <img src="${escapeHtml(imageUrl)}" 
              alt="${escapeHtml(item.name)}" 
              class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-             onerror="this.src='assets/images/placeholder.jpg'">
+             onerror="this.onerror=null; this.src='assets/images/placeholder.jpg'">
         ${badge}
         ${featured}
       </div>
@@ -982,7 +1026,7 @@ function createMenuCard(item) {
         <div class="flex items-center justify-between">
           <span class="text-accent font-bold text-xl">₱${parseFloat(item.price || 0).toFixed(2)}</span>
           <button 
-            onclick="addToCart(this, '${escapeJs(item.name)}', ${item.price}, '${escapeJs(item.image_url || '')}')" 
+            onclick="addToCart(this, '${escapeJs(item.name)}', ${item.price}, '${escapeJs(imageUrl || '')}')" 
             class="px-4 py-2 bg-accent text-white rounded-lg hover:bg-accent-dark transition-colors duration-300 text-sm font-semibold">
             Add to Cart
           </button>

@@ -657,7 +657,7 @@ async function sendReply() {
     
     if (!response.ok) throw new Error('Failed to send reply');
     
-    showToast('✅ Reply sent successfully via email', 'success');
+    showToast('Reply sent successfully via email', 'success');
     closeReplyModal();
     loadTickets(); // Reload to show updated status
     

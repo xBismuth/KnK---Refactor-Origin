@@ -1903,7 +1903,7 @@ async function handlePaymentReturn() {
         sessionStorage.removeItem('pendingPaymentIntentId');
         
         // Show success message
-        showToast('✅ Payment successful! Order created.', 'success');
+        showToast('Payment successful! Order created.', 'success');
         
         // Clean up URL parameters
         window.history.replaceState({}, document.title, window.location.pathname);
@@ -1920,7 +1920,7 @@ async function handlePaymentReturn() {
       }
     } else {
       // No pending order, just show success and reload orders
-      showToast('✅ Payment authorization completed!', 'success');
+      showToast('Payment authorization completed!', 'success');
       
       // Clean up URL parameters
       window.history.replaceState({}, document.title, window.location.pathname);
@@ -1938,14 +1938,14 @@ async function handlePaymentReturn() {
     
     if (paymentStatus === 'success') {
       if (pendingGCashOrder) {
-        showToast('✅ GCash payment successful! Order status updated.', 'success');
+        showToast('GCash payment successful! Order status updated.', 'success');
       } else {
-        showToast('✅ GCash payment successful!', 'success');
+        showToast('GCash payment successful!', 'success');
       }
       // Reload orders to show updated status
       await loadOrders(true);
     } else {
-      showToast('❌ GCash payment failed. Please try again.', 'error');
+      showToast('GCash payment failed. Please try again.', 'error');
       setTimeout(() => {
         window.location.href = 'cart.html';
       }, 3000);

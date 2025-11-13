@@ -742,7 +742,7 @@ async function saveItem(event) {
     console.log('✅ API Response:', data);
     
     if (data.success) {
-      showToast(isEdit ? 'Item updated! 🎉' : 'Item added! 🎉', 'success');
+      showToast(isEdit ? 'Item updated!' : 'Item added!', 'success');
       closeModal();
       editingItemId = null;
       setTimeout(() => loadMenuItems(), 500);

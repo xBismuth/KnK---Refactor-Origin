@@ -262,7 +262,7 @@ exports.resendCode = async (req, res) => {
 // Send login verification code
 exports.sendLoginCode = async (req, res) => {
   try {
-    const { email, password, rememberMe } = req.body;
+    const { email, password, rememberMe, token } = req.body;
     if (!email || !password)
       return res.status(400).json({ success: false, message: 'Email and password are required' });
 
@@ -278,6 +278,51 @@ exports.sendLoginCode = async (req, res) => {
     const isPasswordValid = await bcrypt.compare(password, user.password_hash);
     if (!isPasswordValid)
       return res.status(401).json({ success: false, message: 'Invalid email or password' });
+
+    // Check if user provided a token and if it's valid (Remember Me functionality)
+    if (token) {
+      try {
+        const decoded = jwt.verify(token, JWT_SECRET);
+        // Verify token belongs to this user and email matches
+        if (decoded.userId === user.id && decoded.email === email) {
+          // Token is valid, skip verification code and return token directly
+          await db.query('UPDATE users SET last_login = NOW() WHERE id = ?', [user.id]);
+          
+          const rememberMeFlag = rememberMe === true || rememberMe === 'true';
+          const tokenExpiry = rememberMeFlag ? '30d' : '7d';
+          
+          // Issue new token with appropriate expiry
+          const newToken = jwt.sign(
+            { 
+              userId: user.id,
+              email,
+              name: user.name,
+              role: user.role
+            },
+            JWT_SECRET,
+            { expiresIn: tokenExpiry }
+          );
+
+          return res.json({
+            success: true,
+            skipVerification: true,
+            message: 'Login successful',
+            token: newToken,
+            rememberMe: rememberMeFlag,
+            user: {
+              id: user.id,
+              email,
+              name: user.name,
+              role: user.role,
+              authType: 'email'
+            }
+          });
+        }
+      } catch (tokenError) {
+        // Token is invalid or expired, proceed with normal flow
+        console.log('Token validation failed, proceeding with code verification');
+      }
+    }
 
     // ✅ Admin direct login with consistent token field
     if (user.role === 'admin') {

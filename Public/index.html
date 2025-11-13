@@ -1022,7 +1022,7 @@ function logout() {
     }
 
     // Give user feedback
-    showToast('✅ You have been logged out successfully!', 'success');
+    showToast('You have been logged out successfully!', 'success');
 
     // Redirect to homepage after short delay
     setTimeout(() => {
@@ -1416,7 +1416,7 @@ async function handlePaymentReturn() {
         sessionStorage.removeItem('pendingPaymentIntentId');
         
         // Show success message
-        showToast('✅ Payment successful! Order created. Redirecting...', 'success');
+        showToast('Payment successful! Order created. Redirecting...', 'success');
         
         // Clean up URL parameters
         window.history.replaceState({}, document.title, window.location.pathname);
@@ -1435,7 +1435,7 @@ async function handlePaymentReturn() {
       }
     } else {
       // No pending order, just show success and redirect
-      showToast('✅ Payment authorization completed!', 'success');
+      showToast('Payment authorization completed!', 'success');
       
       // Clean up URL parameters
       window.history.replaceState({}, document.title, window.location.pathname);
@@ -1455,19 +1455,19 @@ async function handlePaymentReturn() {
     
     if (paymentStatus === 'success') {
       if (pendingGCashOrder) {
-        showToast('✅ GCash payment successful! Checking order status...', 'success');
+        showToast('GCash payment successful! Checking order status...', 'success');
         // Order should already be created, just verify it
         setTimeout(() => {
           window.location.href = 'orders.html';
         }, 2000);
       } else {
-        showToast('✅ GCash payment successful!', 'success');
+        showToast('GCash payment successful!', 'success');
         setTimeout(() => {
           window.location.href = 'orders.html';
         }, 2000);
       }
     } else {
-      showToast('❌ GCash payment failed. Please try again.', 'error');
+      showToast('GCash payment failed. Please try again.', 'error');
       setTimeout(() => {
         window.location.href = 'cart.html';
       }, 3000);

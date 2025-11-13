@@ -902,11 +902,11 @@ function initializeSocket() {
     await loadOrdersAndVouchers();
     
     if (data.action === 'created') {
-      showToast('🎟️ New voucher assigned!', 'success');
+      showToast('New voucher assigned!', 'success');
     } else if (data.action === 'deleted') {
-      showToast('🎟️ Voucher removed', 'success');
+      showToast('Voucher removed', 'success');
     } else {
-      showToast('🎟️ Voucher updated', 'success');
+      showToast('Voucher updated', 'success');
     }
   });
   
@@ -1069,7 +1069,7 @@ function useVoucher(code, discountType, discountValue) {
   
   const token = getAuthToken();
   if (!token) {
-    showToast('⚠️ Please login to use vouchers', 'error');
+    showToast('Please login to use vouchers', 'error');
     setTimeout(() => {
       window.location.href = 'login.html';
     }, 1500);

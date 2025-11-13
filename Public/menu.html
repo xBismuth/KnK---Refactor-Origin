@@ -718,7 +718,7 @@ function logout() {
     localStorage.removeItem('authToken');
     
     checkLoginStatus();
-    showToast('✅ You have been logged out successfully!', 'success');
+    showToast('You have been logged out successfully!', 'success');
     
     setTimeout(() => {
       window.location.href = 'index.html';

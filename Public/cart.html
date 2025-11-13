@@ -1296,7 +1296,7 @@ async function applyVoucher() {
       if (voucherDiscountRow) voucherDiscountRow.classList.remove('hidden');
       
       updateTotals();
-      showToast('✅ Voucher applied!', 'success');
+      showToast('Voucher applied!', 'success');
     } else {
       showToast(data.message || 'Invalid voucher', 'error');
     }

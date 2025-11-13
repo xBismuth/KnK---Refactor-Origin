@@ -488,7 +488,7 @@ async function resendCode() {
       console.log('✅ Resend successful!');
       
       // Show success message
-      alert('✅ New verification code sent to your email! Please check your inbox.');
+      alert('New verification code sent to your email! Please check your inbox.');
       
       // Clear code input and reset timer
       document.getElementById('verification-code').value = '';
@@ -516,13 +516,13 @@ async function resendCode() {
       }
       
       if (response.status === 404) {
-        alert('❌ Resend endpoint not found. Please check your connection.');
+        alert('Resend endpoint not found. Please check your connection.');
         console.error('Endpoint URL:', getApiBase() + '/auth/resend-code');
         return;
       }
       
       const message = (data && data.message) || `HTTP ${response.status}: ${response.statusText}`;
-      alert('❌ Failed to resend code: ' + message);
+      alert('Failed to resend code: ' + message);
     }
   } catch (error) {
     console.error('❌ Resend error:', error);
@@ -533,9 +533,9 @@ async function resendCode() {
     });
     
     if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
-      alert('❌ Network error: Could not connect to server. Please check your internet connection.');
+      alert('Network error: Could not connect to server. Please check your internet connection.');
     } else {
-      alert('❌ Failed to resend code: ' + error.message);
+      alert('Failed to resend code: ' + error.message);
     }
   } finally {
     // Re-enable button

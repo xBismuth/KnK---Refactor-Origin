@@ -615,10 +615,26 @@ function proceedToVerification() {
   const rememberMeCheckbox = document.getElementById('remember-me');
   const rememberMe = rememberMeCheckbox ? rememberMeCheckbox.checked : false;
 
-  fetch('/auth/send-login-code', {
+  // Check if user already has a valid token (Remember Me functionality)
+  const existingToken = localStorage.getItem('authToken') || localStorage.getItem('adminToken');
+  const hasRememberMe = localStorage.getItem('rememberMe') === 'true';
+  
+  // If user has a token and remember me is set, include it in the request
+  // Backend will validate it and skip code if valid
+  const requestBody = { email, password, rememberMe };
+  if (existingToken && hasRememberMe) {
+    requestBody.token = existingToken;
+  }
+
+  // Determine API base URL
+  const API_BASE = window.location.origin.startsWith('file:') 
+    ? 'http://localhost:3000' 
+    : '';
+
+  fetch(`${API_BASE}/auth/send-login-code`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password, rememberMe })
+    body: JSON.stringify(requestBody)
   })
   .then(async (res) => {
     // capture JSON if possible, but protect against empty body
@@ -635,13 +651,17 @@ function proceedToVerification() {
     if (!data) throw new Error('No response from server');
 
     if (data.success) {
-      // Admin shortcut: skip verification
+      // Check if verification should be skipped (admin or valid token with remember me)
       if (data.skipVerification) {
-        // Save admin token & user info and redirect
+        // Save token & user info and redirect (works for both admin and regular users with remember me)
         if (data.token) {
           sessionStorage.setItem('authToken', data.token);
-          localStorage.setItem('adminToken', data.token);
-          console.log('✅ Admin token stored:', data.token.substring(0, 20) + '...');
+          // Store admin token separately for admin users
+          if (data.user && data.user.role === 'admin') {
+            localStorage.setItem('adminToken', data.token);
+          } else {
+            localStorage.setItem('authToken', data.token);
+          }
           // Store remember me preference
           if (data.rememberMe) {
             localStorage.setItem('rememberMe', 'true');
@@ -651,13 +671,19 @@ function proceedToVerification() {
         }
         if (data.user) {
           localStorage.setItem('currentUser', JSON.stringify(data.user));
-          console.log('✅ Admin user stored:', data.user);
         }
 
-        showSuccessModal('Welcome Admin!', `Welcome back, ${data.user?.name || 'Admin'}!`);
+        const welcomeMessage = data.user?.role === 'admin' 
+          ? `Welcome back, ${data.user?.name || 'Admin'}!`
+          : `Welcome back, ${data.user?.name || 'User'}!`;
+        showSuccessModal('Welcome Back!', welcomeMessage);
 
         setTimeout(() => {
-          window.location.href = 'dashboard.html';
+          if (data.user?.role === 'admin') {
+            window.location.href = 'dashboard.html';
+          } else {
+            window.location.href = 'index.html';
+          }
         }, 1200);
         return;
       }
@@ -691,8 +717,6 @@ function proceedToVerification() {
   .catch(err => {
     console.error('proceedToVerification error:', err);
     showErrorAlert(err.message || 'Login failed. Please try again.');
-  })
-  .finally(() => {
     isSubmitting = false;
     if (signinBtn) {
       signinBtn.disabled = false;
@@ -1482,7 +1506,7 @@ async function requestPasswordReset() {
       // Show success message with dev code if available
       let message = 'A password reset code has been sent to your email.';
       if (payload.devCode) {
-        message += `\n\n🔧 Development Code: ${payload.devCode}`;
+        message += `\n\nDevelopment Code: ${payload.devCode}`;
         console.log('🔧 Password reset code (dev):', payload.devCode);
         // Also show in alert for visibility during development
         alert(`Password Reset Code (Dev Mode):\n\n${payload.devCode}\n\nThis code is shown in development mode only.`);
